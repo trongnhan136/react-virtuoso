@@ -141,6 +141,11 @@ export interface VirtuosoGridProps<D, C = unknown> extends GridRootProps {
   customScrollParent?: HTMLElement
 
   /**
+   * Pass a reference to a window object
+   */
+  externalWindow?: Window | null
+
+  /**
    * set to LogLevel.DEBUG to enable various diagnostics in the console, the most useful being the item measurement reports.
    *
    * Ensure that you have "all levels" enabled in the browser console too see the messages.

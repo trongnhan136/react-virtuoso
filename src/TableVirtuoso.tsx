@@ -77,6 +77,7 @@ const Items = /*#__PURE__*/ React.memo(function VirtuosoItems() {
   const sizeRanges = usePublisher('sizeRanges')
   const useWindowScroll = useEmitterValue('useWindowScroll')
   const customScrollParent = useEmitterValue('customScrollParent')
+  const externalWindow = useEmitterValue('externalWindow')
   const windowScrollContainerStateCallback = usePublisher('windowScrollContainerState')
   const _scrollContainerStateCallback = usePublisher('scrollContainerState')
   const scrollContainerStateCallback =
@@ -93,7 +94,8 @@ const Items = /*#__PURE__*/ React.memo(function VirtuosoItems() {
     scrollContainerStateCallback,
     log,
     undefined,
-    customScrollParent
+    customScrollParent,
+    externalWindow
   )
 
   const [deviation, setDeviation] = React.useState(0)
@@ -165,7 +167,8 @@ const Viewport: React.FC<React.PropsWithChildren<unknown>> = ({ children }) => {
   const ctx = React.useContext(VirtuosoMockContext)
   const viewportHeight = usePublisher('viewportHeight')
   const fixedItemHeight = usePublisher('fixedItemHeight')
-  const viewportRef = useSize(u.compose(viewportHeight, (el) => correctItemSize(el, 'height')))
+  const externalWindow = useEmitterValue('externalWindow')
+  const viewportRef = useSize(u.compose(viewportHeight, (el) => correctItemSize(el, 'height')), true, externalWindow)
 
   React.useEffect(() => {
     if (ctx) {
@@ -186,7 +189,8 @@ const WindowViewport: React.FC<React.PropsWithChildren<unknown>> = ({ children }
   const windowViewportRect = usePublisher('windowViewportRect')
   const fixedItemHeight = usePublisher('fixedItemHeight')
   const customScrollParent = useEmitterValue('customScrollParent')
-  const viewportRef = useWindowViewportRectRef(windowViewportRect, customScrollParent)
+  const externalWindow = useEmitterValue('externalWindow')
+  const viewportRef = useWindowViewportRectRef(windowViewportRect, customScrollParent,externalWindow)
 
   React.useEffect(() => {
     if (ctx) {
@@ -209,9 +213,10 @@ const TableRoot: React.FC<TableRootProps> = /*#__PURE__*/ React.memo(function Ta
   const fixedFooterHeight = usePublisher('fixedFooterHeight')
   const fixedHeaderContent = useEmitterValue('fixedHeaderContent')
   const fixedFooterContent = useEmitterValue('fixedFooterContent')
+  const externalWindow = useEmitterValue('externalWindow')
   const context = useEmitterValue('context')
-  const theadRef = useSize(u.compose(fixedHeaderHeight, (el) => correctItemSize(el, 'height')))
-  const tfootRef = useSize(u.compose(fixedFooterHeight, (el) => correctItemSize(el, 'height')))
+  const theadRef = useSize(u.compose(fixedHeaderHeight, (el) => correctItemSize(el, 'height')), true, externalWindow)
+  const tfootRef = useSize(u.compose(fixedFooterHeight, (el) => correctItemSize(el, 'height')), true, externalWindow)
   const TheScroller = customScrollParent || useWindowScroll ? WindowScroller : Scroller
   const TheViewport = customScrollParent || useWindowScroll ? WindowViewport : Viewport
   const TheTable = useEmitterValue('TableComponent')

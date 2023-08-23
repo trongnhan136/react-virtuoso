@@ -221,6 +221,11 @@ export interface VirtuosoProps<D, C> extends ListRootProps {
   customScrollParent?: HTMLElement
 
   /**
+   * Pass a reference to a window object
+   */
+  externalWindow?: Window | null
+
+  /**
    * Provides access to the root DOM element
    */
   scrollerRef?: (ref: HTMLElement | Window | null) => any

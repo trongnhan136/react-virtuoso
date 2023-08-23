@@ -8,6 +8,7 @@ export const windowScrollerSystem = u.system(([{ scrollTo, scrollContainerState 
   const windowScrollTo = u.stream<ScrollToOptions>()
   const useWindowScroll = u.statefulStream(false)
   const customScrollParent = u.statefulStream<HTMLElement | undefined>(undefined)
+  const externalWindow = u.statefulStream<Window | undefined | null>(undefined)
 
   u.connect(
     u.pipe(
@@ -41,6 +42,7 @@ export const windowScrollerSystem = u.system(([{ scrollTo, scrollContainerState 
     // config
     useWindowScroll,
     customScrollParent,
+    externalWindow,
 
     // input
     windowScrollContainerState,

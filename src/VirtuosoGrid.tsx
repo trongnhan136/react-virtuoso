@@ -57,6 +57,7 @@ const combinedSystem = /*#__PURE__*/ u.system(([gridSystem, gridComponentPropsSy
 
 const GridItems: React.FC = /*#__PURE__*/ React.memo(function GridItems() {
   const gridState = useEmitterValue('gridState')
+  const externalWindow = useEmitterValue('externalWindow')
   const listClassName = useEmitterValue('listClassName')
   const itemClassName = useEmitterValue('itemClassName')
   const itemContent = useEmitterValue('itemContent')
@@ -84,7 +85,7 @@ const GridItems: React.FC = /*#__PURE__*/ React.memo(function GridItems() {
       row: resolveGapValue('row-gap', getComputedStyle(el).rowGap, log),
       column: resolveGapValue('column-gap', getComputedStyle(el).columnGap, log),
     })
-  })
+  }, true,externalWindow)
 
   if (stateRestoreInProgress) {
     return null
@@ -124,7 +125,8 @@ const Header: React.FC = React.memo(function VirtuosoHeader() {
   const Header = useEmitterValue('HeaderComponent')
   const headerHeight = usePublisher('headerHeight')
   const headerFooterTag = useEmitterValue('headerFooterTag')
-  const ref = useSize((el) => headerHeight(correctItemSize(el, 'height')))
+  const externalWindow = useEmitterValue('externalWindow')
+  const ref = useSize((el) => headerHeight(correctItemSize(el, 'height')), true, externalWindow)
   const context = useEmitterValue('context')
   return Header
     ? React.createElement(headerFooterTag, { ref }, React.createElement(Header, contextPropIfNotDomElement(Header, context)))
@@ -135,7 +137,8 @@ const Footer: React.FC = React.memo(function VirtuosoGridFooter() {
   const Footer = useEmitterValue('FooterComponent')
   const footerHeight = usePublisher('footerHeight')
   const headerFooterTag = useEmitterValue('headerFooterTag')
-  const ref = useSize((el) => footerHeight(correctItemSize(el, 'height')))
+  const externalWindow = useEmitterValue('externalWindow')
+  const ref = useSize((el) => footerHeight(correctItemSize(el, 'height')), true, externalWindow)
   const context = useEmitterValue('context')
   return Footer
     ? React.createElement(headerFooterTag, { ref }, React.createElement(Footer, contextPropIfNotDomElement(Footer, context)))
@@ -146,10 +149,11 @@ const Viewport: React.FC<React.PropsWithChildren<unknown>> = ({ children }) => {
   const ctx = React.useContext(VirtuosoGridMockContext)
   const itemDimensions = usePublisher('itemDimensions')
   const viewportDimensions = usePublisher('viewportDimensions')
+  const externalWindow = useEmitterValue('externalWindow')
 
   const viewportRef = useSize((el) => {
     viewportDimensions(el.getBoundingClientRect())
-  })
+  }, true, externalWindow)
 
   React.useEffect(() => {
     if (ctx) {
@@ -170,7 +174,8 @@ const WindowViewport: React.FC<React.PropsWithChildren<unknown>> = ({ children }
   const windowViewportRect = usePublisher('windowViewportRect')
   const itemDimensions = usePublisher('itemDimensions')
   const customScrollParent = useEmitterValue('customScrollParent')
-  const viewportRef = useWindowViewportRectRef(windowViewportRect, customScrollParent)
+  const externalWindow = useEmitterValue('externalWindow')
+  const viewportRef = useWindowViewportRectRef(windowViewportRect, customScrollParent,externalWindow)
 
   React.useEffect(() => {
     if (ctx) {
@@ -226,6 +231,7 @@ const {
       itemClassName: 'itemClassName',
       useWindowScroll: 'useWindowScroll',
       customScrollParent: 'customScrollParent',
+      externalWindow: 'externalWindow',
       scrollerRef: 'scrollerRef',
       logLevel: 'logLevel',
       restoreStateFrom: 'restoreStateFrom',

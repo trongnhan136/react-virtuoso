@@ -201,6 +201,11 @@ export interface TableVirtuosoProps<D, C> extends Omit<VirtuosoProps<D, C>, 'com
   customScrollParent?: HTMLElement
 
   /**
+   * Pass a reference to a window object
+   */
+  externalWindow?: Window | null
+
+  /**
    * Provides access to the root DOM element
    */
   scrollerRef?: (ref: HTMLElement | Window | null) => any
