@@ -485,8 +485,8 @@ function useSizeWithElRef(callback, enabled = true, externalWindow) {
       if (externalWindow) {
         return new externalWindow.ResizeObserver((entries) => {
           const element = entries[0].target;
+          console.log("DKM - element", element.offsetParent);
           if (element.offsetParent !== null) {
-            console.log("DKM - element", element.offsetParent);
             callback(element);
           }
         });
