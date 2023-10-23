@@ -421,7 +421,7 @@ function systemToComponent(systemSpec, map2, Root) {
     useEmitter: useEmitter2
   };
 }
-const useIsomorphicLayoutEffect = typeof document !== "undefined" ? React.useLayoutEffect : React.useEffect;
+const useIsomorphicLayoutEffect = React.useEffect;
 const useIsomorphicLayoutEffect$1 = useIsomorphicLayoutEffect;
 var LogLevel = /* @__PURE__ */ ((LogLevel2) => {
   LogLevel2[LogLevel2["DEBUG"] = 0] = "DEBUG";
@@ -485,7 +485,6 @@ function useSizeWithElRef(callback, enabled = true, externalWindow) {
       if (externalWindow) {
         return new externalWindow.ResizeObserver((entries) => {
           const element = entries[0].target;
-          console.log("DKM - element", element.offsetParent);
           if (element.offsetParent !== null) {
             callback(element);
           }

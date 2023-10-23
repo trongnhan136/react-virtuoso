@@ -20,7 +20,6 @@ export function useSizeWithElRef(callback: (e: HTMLElement) => void, enabled = t
       if (externalWindow) {
         return new externalWindow.ResizeObserver((entries: ResizeObserverEntry[]) => {
           const element = entries[0].target as HTMLElement
-          console.log('DKM - element', element.offsetParent)
           if (element.offsetParent !== null) {
             callback(element)
           }
