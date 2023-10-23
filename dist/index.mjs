@@ -2169,6 +2169,26 @@ function buildListState(items, topItems, totalCount, gap, sizes, firstItemIndex)
     firstItemIndex
   };
 }
+function buildListStateFromItemCount(itemCount, initialTopMostItemIndex, sizes, firstItemIndex, gap, data) {
+  let includedGroupsCount = 0;
+  if (sizes.groupIndices.length > 0) {
+    for (const index of sizes.groupIndices) {
+      if (index - includedGroupsCount >= itemCount) {
+        break;
+      }
+      includedGroupsCount++;
+    }
+  }
+  const adjustedCount = itemCount + includedGroupsCount;
+  const initialTopMostItemIndexNumber = getInitialTopMostItemIndexNumber(initialTopMostItemIndex, adjustedCount);
+  const items = Array.from({ length: adjustedCount }).map((_, index) => ({
+    index: index + initialTopMostItemIndexNumber,
+    size: 0,
+    offset: 0,
+    data: data[index + initialTopMostItemIndexNumber]
+  }));
+  return buildListState(items, [], adjustedCount, gap, sizes, firstItemIndex);
+}
 const listStateSystem = system(
   ([
     { sizes, totalCount, data, firstItemIndex, gap },
@@ -2181,6 +2201,7 @@ const listStateSystem = system(
     { recalcInProgress }
   ]) => {
     const topItemsIndexes = statefulStream([]);
+    const initialItemCount = statefulStream(0);
     const itemsRendered = stream();
     connect(groupedListSystem2.topItemsIndexes, topItemsIndexes);
     const listState = statefulStreamFromEmitter(
@@ -2218,11 +2239,22 @@ const listStateSystem = system(
           ]) => {
             const sizesValue = sizes2;
             const { sizeTree, offsetTree } = sizesValue;
-            if (totalCount2 === 0 || startOffset === 0 && endOffset === 0) {
+            const initialItemCountValue = getValue(initialItemCount);
+            if (totalCount2 === 0) {
               return { ...EMPTY_LIST_STATE, totalCount: totalCount2 };
             }
+            if (startOffset === 0 && endOffset === 0) {
+              if (initialItemCountValue === 0) {
+                return { ...EMPTY_LIST_STATE, totalCount: totalCount2 };
+              } else {
+                return buildListStateFromItemCount(initialItemCountValue, initialTopMostItemIndex2, sizes2, firstItemIndex2, gap2, data2 || []);
+              }
+            }
             if (empty(sizeTree)) {
-              return buildListState(
+              if (initialItemCountValue > 0) {
+                return null;
+              }
+              const state = buildListState(
                 probeItemSet(getInitialTopMostItemIndexNumber(initialTopMostItemIndex2, totalCount2), sizesValue, data2),
                 [],
                 totalCount2,
@@ -2230,6 +2262,7 @@ const listStateSystem = system(
                 sizesValue,
                 firstItemIndex2
               );
+              return state;
             }
             const topItems = [];
             if (topItemsIndexes2.length > 0) {
@@ -2362,7 +2395,7 @@ const listStateSystem = system(
         distinctUntilChanged(rangeComparator)
       )
     );
-    return { listState, topItemsIndexes, endReached, startReached, rangeChanged, itemsRendered, ...stateFlags };
+    return { listState, topItemsIndexes, endReached, startReached, rangeChanged, itemsRendered, initialItemCount, ...stateFlags };
   },
   tup(
     sizeSystem,
@@ -2377,8 +2410,7 @@ const listStateSystem = system(
   { singleton: true }
 );
 const initialItemCountSystem = system(
-  ([{ sizes, firstItemIndex, data, gap }, { initialTopMostItemIndex }, { listState }, { didMount }]) => {
-    const initialItemCount = statefulStream(0);
+  ([{ sizes, firstItemIndex, data, gap }, { initialTopMostItemIndex }, { initialItemCount, listState }, { didMount }]) => {
     connect(
       pipe(
         didMount,
@@ -2386,29 +2418,12 @@ const initialItemCountSystem = system(
         filter(([, count]) => count !== 0),
         withLatestFrom(initialTopMostItemIndex, sizes, firstItemIndex, gap, data),
         map(([[, count], initialTopMostItemIndexValue, sizes2, firstItemIndex2, gap2, data2 = []]) => {
-          let includedGroupsCount = 0;
-          if (sizes2.groupIndices.length > 0) {
-            for (const index of sizes2.groupIndices) {
-              if (index - includedGroupsCount >= count) {
-                break;
-              }
-              includedGroupsCount++;
-            }
-          }
-          const adjustedCount = count + includedGroupsCount;
-          const initialTopMostItemIndexNumber = getInitialTopMostItemIndexNumber(initialTopMostItemIndexValue, adjustedCount);
-          const items = Array.from({ length: adjustedCount }).map((_, index) => ({
-            index: index + initialTopMostItemIndexNumber,
-            size: 0,
-            offset: 0,
-            data: data2[index + initialTopMostItemIndexNumber]
-          }));
-          return buildListState(items, [], adjustedCount, gap2, sizes2, firstItemIndex2);
+          return buildListStateFromItemCount(count, initialTopMostItemIndexValue, sizes2, firstItemIndex2, gap2, data2);
         })
       ),
       listState
     );
-    return { initialItemCount };
+    return {};
   },
   tup(sizeSystem, initialTopMostItemIndexSystem, listStateSystem, propsReadySystem),
   { singleton: true }
@@ -3148,12 +3163,12 @@ const Items$1 = /* @__PURE__ */ React.memo(function VirtuosoItems({ showTopList 
           ItemComponent,
           {
             ...contextPropIfNotDomElement(ItemComponent, context),
+            ...itemPropIfNotDomElement(ItemComponent, item.data),
             key,
             "data-index": index,
             "data-known-size": item.size,
             "data-item-index": item.index,
             "data-item-group-index": item.groupIndex,
-            item: item.data,
             style: ITEM_STYLE$1
           },
           hasGroups2 ? itemContent(item.index, item.groupIndex, item.data, context) : itemContent(item.index, item.data, context)
@@ -3186,6 +3201,9 @@ function contextPropIfNotDomElement(element, context) {
     return void 0;
   }
   return { context };
+}
+function itemPropIfNotDomElement(element, item) {
+  return { item: typeof element === "string" ? void 0 : item };
 }
 const Header$1 = /* @__PURE__ */ React.memo(function VirtuosoHeader() {
   const Header2 = useEmitterValue$2("HeaderComponent");
@@ -4087,11 +4105,11 @@ const Items = /* @__PURE__ */ React.memo(function VirtuosoItems2() {
       TableRowComponent,
       {
         ...contextPropIfNotDomElement(TableRowComponent, context),
+        ...itemPropIfNotDomElement(TableRowComponent, item.data),
         key,
         "data-index": index,
         "data-known-size": item.size,
         "data-item-index": item.index,
-        item: item.data,
         style: ITEM_STYLE
       },
       itemContent(item.index, item.data, context)
@@ -4184,6 +4202,7 @@ const {
   {
     required: {},
     optional: {
+      restoreStateFrom: "restoreStateFrom",
       context: "context",
       followOutput: "followOutput",
       firstItemIndex: "firstItemIndex",
@@ -4217,7 +4236,8 @@ const {
       scrollToIndex: "scrollToIndex",
       scrollIntoView: "scrollIntoView",
       scrollTo: "scrollTo",
-      scrollBy: "scrollBy"
+      scrollBy: "scrollBy",
+      getState: "getState"
     },
     events: {
       isScrolling: "isScrolling",
