@@ -12,7 +12,8 @@ export default function useScrollTop(
   smoothScrollTargetReached: (yes: true) => void,
   scrollerElement: any,
   scrollerRefCallback: (ref: ScrollerRef) => void = u.noop,
-  customScrollParent?: HTMLElement
+  customScrollParent?: HTMLElement,
+  externalWindow?: Window|null,
 ) {
   const scrollerRef = React.useRef<HTMLElement | null | Window>(null)
   const scrollTopTarget = React.useRef<any>(null)
@@ -20,11 +21,12 @@ export default function useScrollTop(
 
   const handler = React.useCallback(
     (ev: Event) => {
+      let myWindow = externalWindow ?? window;
       const el = ev.target as HTMLElement
-      const windowScroll = (el as any) === window || (el as any) === document
-      const scrollTop = windowScroll ? window.pageYOffset || document.documentElement.scrollTop : el.scrollTop
+      const windowScroll = (el as any) === myWindow || (el as any) === document
+      const scrollTop = windowScroll ? myWindow.pageYOffset || document.documentElement.scrollTop : el.scrollTop
       const scrollHeight = windowScroll ? document.documentElement.scrollHeight : el.scrollHeight
-      const viewportHeight = windowScroll ? window.innerHeight : el.offsetHeight
+      const viewportHeight = windowScroll ? myWindow.innerHeight : el.offsetHeight
 
       const call = () => {
         scrollContainerStateCallback({
@@ -73,16 +75,18 @@ export default function useScrollTop(
       return
     }
 
+    let myWindow = externalWindow ?? window;
+
     const isSmooth = location.behavior === 'smooth'
 
     let offsetHeight: number
     let scrollHeight: number
     let scrollTop: number
 
-    if (scrollerElement === window) {
+    if (scrollerElement === myWindow) {
       // this is not a mistake
       scrollHeight = Math.max(correctItemSize(document.documentElement, 'height'), document.documentElement.scrollHeight)
-      offsetHeight = window.innerHeight
+      offsetHeight = myWindow.innerHeight
       scrollTop = document.documentElement.scrollTop
     } else {
       scrollHeight = (scrollerElement as HTMLElement).scrollHeight

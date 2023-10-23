@@ -517,15 +517,16 @@ function useSize(callback, enabled = true, externalWindow) {
 function useChangedListContentsSizes(callback, itemSize, enabled, scrollContainerStateCallback, log, gap, customScrollParent, externalWindow) {
   const memoedCallback = React.useCallback(
     (el) => {
+      let myWindow = externalWindow != null ? externalWindow : window;
       const ranges = getChangedChildSizes(el.children, itemSize, "offsetHeight", log);
       let scrollableElement = el.parentElement;
       while (!scrollableElement.dataset["virtuosoScroller"]) {
         scrollableElement = scrollableElement.parentElement;
       }
       const windowScrolling = scrollableElement.lastElementChild.dataset["viewportType"] === "window";
-      const scrollTop = customScrollParent ? customScrollParent.scrollTop : windowScrolling ? window.pageYOffset || document.documentElement.scrollTop : scrollableElement.scrollTop;
+      const scrollTop = customScrollParent ? customScrollParent.scrollTop : windowScrolling ? myWindow.pageYOffset || document.documentElement.scrollTop : scrollableElement.scrollTop;
       const scrollHeight = customScrollParent ? customScrollParent.scrollHeight : windowScrolling ? document.documentElement.scrollHeight : scrollableElement.scrollHeight;
-      const viewportHeight = customScrollParent ? customScrollParent.offsetHeight : windowScrolling ? window.innerHeight : scrollableElement.offsetHeight;
+      const viewportHeight = customScrollParent ? customScrollParent.offsetHeight : windowScrolling ? myWindow.innerHeight : scrollableElement.offsetHeight;
       scrollContainerStateCallback({
         scrollTop: Math.max(scrollTop, 0),
         scrollHeight,
@@ -584,17 +585,18 @@ function correctItemSize(el, dimension) {
 function approximatelyEqual(num1, num2) {
   return Math.abs(num1 - num2) < 1.01;
 }
-function useScrollTop(scrollContainerStateCallback, smoothScrollTargetReached, scrollerElement, scrollerRefCallback = noop, customScrollParent) {
+function useScrollTop(scrollContainerStateCallback, smoothScrollTargetReached, scrollerElement, scrollerRefCallback = noop, customScrollParent, externalWindow) {
   const scrollerRef = React.useRef(null);
   const scrollTopTarget = React.useRef(null);
   const timeoutRef = React.useRef(null);
   const handler = React.useCallback(
     (ev) => {
+      let myWindow = externalWindow != null ? externalWindow : window;
       const el = ev.target;
-      const windowScroll = el === window || el === document;
-      const scrollTop = windowScroll ? window.pageYOffset || document.documentElement.scrollTop : el.scrollTop;
+      const windowScroll = el === myWindow || el === document;
+      const scrollTop = windowScroll ? myWindow.pageYOffset || document.documentElement.scrollTop : el.scrollTop;
       const scrollHeight = windowScroll ? document.documentElement.scrollHeight : el.scrollHeight;
-      const viewportHeight = windowScroll ? window.innerHeight : el.offsetHeight;
+      const viewportHeight = windowScroll ? myWindow.innerHeight : el.offsetHeight;
       const call2 = () => {
         scrollContainerStateCallback({
           scrollTop: Math.max(scrollTop, 0),
@@ -635,13 +637,14 @@ function useScrollTop(scrollContainerStateCallback, smoothScrollTargetReached, s
     if (!scrollerElement2 || "offsetHeight" in scrollerElement2 && scrollerElement2.offsetHeight === 0) {
       return;
     }
+    let myWindow = externalWindow != null ? externalWindow : window;
     const isSmooth = location.behavior === "smooth";
     let offsetHeight;
     let scrollHeight;
     let scrollTop;
-    if (scrollerElement2 === window) {
+    if (scrollerElement2 === myWindow) {
       scrollHeight = Math.max(correctItemSize(document.documentElement, "height"), document.documentElement.scrollHeight);
-      offsetHeight = window.innerHeight;
+      offsetHeight = myWindow.innerHeight;
       scrollTop = document.documentElement.scrollTop;
     } else {
       scrollHeight = scrollerElement2.scrollHeight;
@@ -2964,6 +2967,7 @@ function useWindowViewportRectRef(callback, customScrollParent, externalWindow) 
       if (element === null || !element.offsetParent) {
         return;
       }
+      const myWindow = externalWindow != null ? externalWindow : window;
       const rect = element.getBoundingClientRect();
       const visibleWidth = rect.width;
       let visibleHeight, offsetTop;
@@ -2973,8 +2977,8 @@ function useWindowViewportRectRef(callback, customScrollParent, externalWindow) 
         visibleHeight = customScrollParentRect.height - Math.max(0, deltaTop);
         offsetTop = deltaTop + customScrollParent.scrollTop;
       } else {
-        visibleHeight = window.innerHeight - Math.max(0, rect.top);
-        offsetTop = rect.top + window.pageYOffset;
+        visibleHeight = myWindow.innerHeight - Math.max(0, rect.top);
+        offsetTop = rect.top + myWindow.pageYOffset;
       }
       viewportInfo.current = {
         offsetTop,
@@ -2999,11 +3003,12 @@ function useWindowViewportRectRef(callback, customScrollParent, externalWindow) 
         observer.unobserve(customScrollParent);
       };
     } else {
-      window.addEventListener("scroll", scrollAndResizeEventHandler);
-      window.addEventListener("resize", scrollAndResizeEventHandler);
+      let myWindow = externalWindow != null ? externalWindow : window;
+      myWindow.addEventListener("scroll", scrollAndResizeEventHandler);
+      myWindow.addEventListener("resize", scrollAndResizeEventHandler);
       return () => {
-        window.removeEventListener("scroll", scrollAndResizeEventHandler);
-        window.removeEventListener("resize", scrollAndResizeEventHandler);
+        myWindow.removeEventListener("scroll", scrollAndResizeEventHandler);
+        myWindow.removeEventListener("resize", scrollAndResizeEventHandler);
       };
     }
   }, [scrollAndResizeEventHandler, customScrollParent]);
@@ -3212,11 +3217,14 @@ function buildScroller({ usePublisher: usePublisher2, useEmitter: useEmitter2, u
     const smoothScrollTargetReached = usePublisher2("smoothScrollTargetReached");
     const scrollerRefCallback = useEmitterValue2("scrollerRef");
     const context = useEmitterValue2("context");
+    const externalWindow = useEmitterValue2("externalWindow");
     const { scrollerRef, scrollByCallback, scrollToCallback } = useScrollTop(
       scrollContainerStateCallback,
       smoothScrollTargetReached,
       ScrollerComponent,
-      scrollerRefCallback
+      scrollerRefCallback,
+      void 0,
+      externalWindow
     );
     useEmitter2("scrollTo", scrollToCallback);
     useEmitter2("scrollBy", scrollByCallback);
@@ -3245,12 +3253,14 @@ function buildWindowScroller({ usePublisher: usePublisher2, useEmitter: useEmitt
     const deviation = useEmitterValue2("deviation");
     const customScrollParent = useEmitterValue2("customScrollParent");
     const context = useEmitterValue2("context");
+    const externalWindow = useEmitterValue2("externalWindow");
     const { scrollerRef, scrollByCallback, scrollToCallback } = useScrollTop(
       scrollContainerStateCallback,
       smoothScrollTargetReached,
       ScrollerComponent,
       noop,
-      customScrollParent
+      customScrollParent,
+      externalWindow
     );
     useIsomorphicLayoutEffect$1(() => {
       scrollerRef.current = customScrollParent ? customScrollParent : window;
@@ -3278,7 +3288,11 @@ const Viewport$2 = ({ children }) => {
   const viewportHeight = usePublisher$2("viewportHeight");
   const fixedItemHeight = usePublisher$2("fixedItemHeight");
   const externalWindow = useEmitterValue$2("externalWindow");
-  const viewportRef = useSize(compose(viewportHeight, (el) => correctItemSize(el, "height")), true, externalWindow);
+  const viewportRef = useSize(
+    compose(viewportHeight, (el) => correctItemSize(el, "height")),
+    true,
+    externalWindow
+  );
   React.useEffect(() => {
     if (ctx) {
       viewportHeight(ctx.viewportHeight);

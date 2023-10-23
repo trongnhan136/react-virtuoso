@@ -10,6 +10,7 @@ export default function useWindowViewportRectRef(callback: (info: WindowViewport
       if (element === null || !element.offsetParent) {
         return
       }
+      const myWindow = externalWindow ?? window;
       const rect = element.getBoundingClientRect()
       const visibleWidth = rect.width
       let visibleHeight: number, offsetTop: number
@@ -21,8 +22,8 @@ export default function useWindowViewportRectRef(callback: (info: WindowViewport
         visibleHeight = customScrollParentRect.height - Math.max(0, deltaTop)
         offsetTop = deltaTop + customScrollParent.scrollTop
       } else {
-        visibleHeight = window.innerHeight - Math.max(0, rect.top)
-        offsetTop = rect.top + window.pageYOffset
+        visibleHeight = myWindow.innerHeight - Math.max(0, rect.top)
+        offsetTop = rect.top + myWindow.pageYOffset
       }
 
       viewportInfo.current = {
@@ -52,11 +53,12 @@ export default function useWindowViewportRectRef(callback: (info: WindowViewport
         observer.unobserve(customScrollParent)
       }
     } else {
-      window.addEventListener('scroll', scrollAndResizeEventHandler)
-      window.addEventListener('resize', scrollAndResizeEventHandler)
+      let myWindow = externalWindow ?? window;
+      myWindow.addEventListener('scroll', scrollAndResizeEventHandler)
+      myWindow.addEventListener('resize', scrollAndResizeEventHandler)
       return () => {
-        window.removeEventListener('scroll', scrollAndResizeEventHandler)
-        window.removeEventListener('resize', scrollAndResizeEventHandler)
+        myWindow.removeEventListener('scroll', scrollAndResizeEventHandler)
+        myWindow.removeEventListener('resize', scrollAndResizeEventHandler)
       }
     }
   }, [scrollAndResizeEventHandler, customScrollParent])

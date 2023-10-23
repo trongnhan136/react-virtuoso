@@ -14,6 +14,7 @@ export default function useChangedListContentsSizes(
 ) {
   const memoedCallback = React.useCallback(
     (el: HTMLElement) => {
+      let myWindow = externalWindow ?? window;
       const ranges = getChangedChildSizes(el.children, itemSize, 'offsetHeight', log)
       let scrollableElement = el.parentElement!
 
@@ -27,7 +28,7 @@ export default function useChangedListContentsSizes(
       const scrollTop = customScrollParent
         ? customScrollParent.scrollTop
         : windowScrolling
-        ? window.pageYOffset || document.documentElement.scrollTop
+        ? myWindow.pageYOffset || document.documentElement.scrollTop
         : scrollableElement.scrollTop
 
       const scrollHeight = customScrollParent
@@ -39,7 +40,7 @@ export default function useChangedListContentsSizes(
       const viewportHeight = customScrollParent
         ? customScrollParent.offsetHeight
         : windowScrolling
-        ? window.innerHeight
+        ? myWindow.innerHeight
         : scrollableElement.offsetHeight
 
       scrollContainerStateCallback({
