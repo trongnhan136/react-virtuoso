@@ -3263,7 +3263,7 @@ function buildWindowScroller({ usePublisher: usePublisher2, useEmitter: useEmitt
       externalWindow
     );
     useIsomorphicLayoutEffect$1(() => {
-      scrollerRef.current = customScrollParent ? customScrollParent : window;
+      scrollerRef.current = customScrollParent ? customScrollParent : externalWindow != null ? externalWindow : window;
       return () => {
         scrollerRef.current = null;
       };

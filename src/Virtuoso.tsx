@@ -304,7 +304,7 @@ export function buildWindowScroller({ usePublisher, useEmitter, useEmitterValue 
     )
 
     useIsomorphicLayoutEffect(() => {
-      scrollerRef.current = customScrollParent ? customScrollParent : window
+      scrollerRef.current = customScrollParent ? customScrollParent : externalWindow ?? window
       return () => {
         scrollerRef.current = null
       }
