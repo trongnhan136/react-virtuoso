@@ -2641,58 +2641,6 @@ const upwardScrollFixSystem = system(
   },
   tup(domIOSystem, stateFlagsSystem, listStateSystem, sizeSystem, loggerSystem, recalcSystem)
 );
-const initialScrollTopSystem = system(
-  ([{ didMount }, { scrollTo }, { listState }]) => {
-    const initialScrollTop = statefulStream(0);
-    subscribe(
-      pipe(
-        didMount,
-        withLatestFrom(initialScrollTop),
-        filter(([, offset]) => offset !== 0),
-        map(([, offset]) => ({ top: offset }))
-      ),
-      (location) => {
-        handleNext(
-          pipe(
-            listState,
-            skip(1),
-            filter((state) => state.items.length > 1)
-          ),
-          () => {
-            myRequestAnimationFrame(() => {
-              publish(scrollTo, location);
-            });
-          }
-        );
-      }
-    );
-    return {
-      initialScrollTop
-    };
-  },
-  tup(propsReadySystem, domIOSystem, listStateSystem),
-  { singleton: true }
-);
-const alignToBottomSystem = system(
-  ([{ viewportHeight }, { totalListHeight }]) => {
-    const alignToBottom = statefulStream(false);
-    const paddingTopAddition = statefulStreamFromEmitter(
-      pipe(
-        combineLatest(alignToBottom, viewportHeight, totalListHeight),
-        filter(([enabled]) => enabled),
-        map(([, viewportHeight2, totalListHeight2]) => {
-          return Math.max(0, viewportHeight2 - totalListHeight2);
-        }),
-        throttleTime(0),
-        distinctUntilChanged()
-      ),
-      0
-    );
-    return { alignToBottom, paddingTopAddition };
-  },
-  tup(domIOSystem, totalListHeightSystem),
-  { singleton: true }
-);
 const windowScrollerSystem = system(([{ scrollTo, scrollContainerState }]) => {
   const windowScrollContainerState = stream();
   const windowViewportRect = stream();
@@ -2738,6 +2686,60 @@ const windowScrollerSystem = system(([{ scrollTo, scrollContainerState }]) => {
     windowScrollTo
   };
 }, tup(domIOSystem));
+const initialScrollTopSystem = system(
+  ([{ didMount }, { scrollTo }, { listState }, { externalWindow }]) => {
+    const initialScrollTop = statefulStream(0);
+    subscribe(
+      pipe(
+        didMount,
+        withLatestFrom(initialScrollTop),
+        filter(([, offset]) => offset !== 0),
+        map(([, offset]) => ({ top: offset }))
+      ),
+      (location) => {
+        handleNext(
+          pipe(
+            combineLatest(listState, externalWindow),
+            skip(1),
+            filter(([state]) => state.items.length > 1)
+          ),
+          ([_, wi]) => {
+            const w = wi || window;
+            console.log(w);
+            w.requestAnimationFrame(() => {
+              publish(scrollTo, location);
+            });
+          }
+        );
+      }
+    );
+    return {
+      initialScrollTop
+    };
+  },
+  tup(propsReadySystem, domIOSystem, listStateSystem, windowScrollerSystem),
+  { singleton: true }
+);
+const alignToBottomSystem = system(
+  ([{ viewportHeight }, { totalListHeight }]) => {
+    const alignToBottom = statefulStream(false);
+    const paddingTopAddition = statefulStreamFromEmitter(
+      pipe(
+        combineLatest(alignToBottom, viewportHeight, totalListHeight),
+        filter(([enabled]) => enabled),
+        map(([, viewportHeight2, totalListHeight2]) => {
+          return Math.max(0, viewportHeight2 - totalListHeight2);
+        }),
+        throttleTime(0),
+        distinctUntilChanged()
+      ),
+      0
+    );
+    return { alignToBottom, paddingTopAddition };
+  },
+  tup(domIOSystem, totalListHeightSystem),
+  { singleton: true }
+);
 const defaultCalculateViewLocation = ({
   itemTop: itemTop2,
   itemBottom,

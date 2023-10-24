@@ -2,13 +2,14 @@ import React from 'react'
 declare global {
   // eslint-disable-next-line no-unused-vars
   interface Window {
-    ResizeObserver: typeof ResizeObserver;
+    ResizeObserver: typeof ResizeObserver
+    requestAnimationFrame: any
   }
 }
 
 export type CallbackRefParam = HTMLElement | null
 
-export function useSizeWithElRef(callback: (e: HTMLElement) => void, enabled = true, externalWindow?:Window| null) {
+export function useSizeWithElRef(callback: (e: HTMLElement) => void, enabled = true, externalWindow?: Window | null) {
   const ref = React.useRef<CallbackRefParam>(null)
 
   let callbackRef = (_el: CallbackRefParam) => {
@@ -17,13 +18,13 @@ export function useSizeWithElRef(callback: (e: HTMLElement) => void, enabled = t
 
   if (typeof ResizeObserver !== 'undefined') {
     const observer = React.useMemo(() => {
-      if(externalWindow){
+      if (externalWindow) {
         return new externalWindow.ResizeObserver((entries: ResizeObserverEntry[]) => {
           const element = entries[0].target as HTMLElement
           if (element.offsetParent !== null) {
             callback(element)
           }
-        })  
+        })
       }
       return new ResizeObserver((entries: ResizeObserverEntry[]) => {
         const element = entries[0].target as HTMLElement
@@ -49,6 +50,6 @@ export function useSizeWithElRef(callback: (e: HTMLElement) => void, enabled = t
   return { ref, callbackRef }
 }
 
-export default function useSize(callback: (e: HTMLElement) => void, enabled = true, externalWindow?:Window| null) {
+export default function useSize(callback: (e: HTMLElement) => void, enabled = true, externalWindow?: Window | null) {
   return useSizeWithElRef(callback, enabled, externalWindow).callbackRef
 }
