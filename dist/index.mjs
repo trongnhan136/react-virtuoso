@@ -1797,7 +1797,7 @@ const propsReadySystem = system(
 const myRequestAnimationFrame = (callback) => {
   setTimeout(() => {
     callback();
-  }, 1e3 / 24);
+  }, 1e3 / 120);
 };
 function skipFrames(frameCount, callback) {
   if (frameCount == 0) {

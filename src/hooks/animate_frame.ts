@@ -5,5 +5,5 @@ export const myRequestAnimationFrame = (callback: () => void) => {
 
   setTimeout(() => {
     callback()
-  }, 1000 / 24)
+  }, 1000 / 120)
 }
