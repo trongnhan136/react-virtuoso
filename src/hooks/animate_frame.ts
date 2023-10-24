@@ -13,18 +13,13 @@
 
 var lastTime = 0
 export const myRequestAnimationFrame = function (callback: (t?: number) => void) {
-  //   var currTime = new Date().getTime()
-  //   var timeToCall = Math.max(0, 16 - (currTime - lastTime))
-  //   var id = setTimeout(function () {
-  //     callback(currTime + timeToCall)
-  //   }, timeToCall)
-  //   lastTime = currTime + timeToCall
-  //   return id
-  var now = window.performance.now()
-  var nextTime = Math.max(lastTime + 16, now)
-  return setTimeout(function () {
-    callback((lastTime = nextTime))
-  }, nextTime - now)
+  var currTime = new Date().getTime()
+  var timeToCall = Math.max(0, 16 - (currTime - lastTime))
+  var id = setTimeout(function () {
+    callback(currTime + timeToCall)
+  }, timeToCall)
+  lastTime = currTime + timeToCall
+  return id
 }
 
 export const myCancelAnimationFrame = function (id: any) {
