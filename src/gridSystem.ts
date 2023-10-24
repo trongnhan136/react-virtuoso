@@ -78,7 +78,7 @@ export const gridSystem = /*#__PURE__*/ u.system(
     stateFlags,
     scrollSeek,
     { propsReady, didMount },
-    { windowViewportRect, useWindowScroll, customScrollParent,externalWindow ,windowScrollContainerState, windowScrollTo },
+    { windowViewportRect, useWindowScroll, customScrollParent, externalWindow, windowScrollContainerState, windowScrollTo },
     log,
   ]) => {
     const totalCount = u.statefulStream(0)
@@ -114,15 +114,23 @@ export const gridSystem = /*#__PURE__*/ u.system(
 
     u.subscribe(
       u.pipe(
-        u.combineLatest(didMount, scrolledToInitialItem, itemDimensions, viewportDimensions, initialTopMostItemIndex, scrollScheduled),
+        u.combineLatest(
+          didMount,
+          scrolledToInitialItem,
+          itemDimensions,
+          viewportDimensions,
+          initialTopMostItemIndex,
+          externalWindow,
+          scrollScheduled
+        ),
         u.filter(([didMount, scrolledToInitialItem, itemDimensions, viewportDimensions, , scrollScheduled]) => {
           return didMount && !scrolledToInitialItem && itemDimensions.height !== 0 && viewportDimensions.height !== 0 && !scrollScheduled
         })
       ),
-      ([, , , , initialTopMostItemIndex]) => {
+      ([, , , , initialTopMostItemIndex, externalWindow]) => {
         u.publish(scrollScheduled, true)
-
-        skipFrames(1, () => {
+        const w = externalWindow || window
+        skipFrames(w, 1, () => {
           u.publish(scrollToIndex, initialTopMostItemIndex)
         })
 

@@ -1,8 +1,8 @@
+/* eslint-disable @typescript-eslint/no-unsafe-call */
 import * as u from './urx'
 import { propsReadySystem } from './propsReadySystem'
 import { domIOSystem } from './domIOSystem'
 import { listStateSystem } from './listStateSystem'
-import { myRequestAnimationFrame } from './hooks/animate_frame'
 import { windowScrollerSystem } from './windowScrollerSystem'
 
 export const initialScrollTopSystem = u.system(
@@ -25,7 +25,6 @@ export const initialScrollTopSystem = u.system(
           ),
           ([_, wi]) => {
             const w = wi || window
-            console.log(w)
             w.requestAnimationFrame(() => {
               u.publish(scrollTo, location)
             })

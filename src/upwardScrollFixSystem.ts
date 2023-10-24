@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-call */
 import * as u from './urx'
 import { domIOSystem } from './domIOSystem'
 import { listStateSystem } from './listStateSystem'
@@ -8,7 +9,7 @@ import { loggerSystem, LogLevel } from './loggerSystem'
 import { simpleMemoize } from './utils/simpleMemoize'
 import { recalcSystem } from './recalcSystem'
 import { find } from './AATree'
-import { myRequestAnimationFrame } from './hooks/animate_frame'
+import { windowScrollerSystem } from './windowScrollerSystem'
 
 const isMobileSafari = simpleMemoize(() => {
   return /iP(ad|od|hone)/i.test(navigator.userAgent) && /WebKit/i.test(navigator.userAgent)
@@ -26,6 +27,7 @@ export const upwardScrollFixSystem = u.system(
     { beforeUnshiftWith, shiftWithOffset, sizes, gap },
     { log },
     { recalcInProgress },
+    { externalWindow },
   ]) => {
     const deviationOffset = u.streamFromEmitter(
       u.pipe(
@@ -107,8 +109,8 @@ export const upwardScrollFixSystem = u.system(
     u.subscribe(
       u.pipe(
         beforeUnshiftWith,
-        u.withLatestFrom(sizes, gap),
-        u.map(([offset, { lastSize: defaultItemSize, groupIndices, sizeTree }, gap]) => {
+        u.withLatestFrom(sizes, gap, externalWindow),
+        u.map(([offset, { lastSize: defaultItemSize, groupIndices, sizeTree }, gap, w]) => {
           function getItemOffset(itemCount: number) {
             return itemCount * (defaultItemSize + gap)
           }
@@ -145,11 +147,14 @@ export const upwardScrollFixSystem = u.system(
       ),
       (offset) => {
         u.publish(deviation, offset)
-        myRequestAnimationFrame(() => {
-          u.publish(scrollBy, { top: offset })
-          myRequestAnimationFrame(() => {
-            u.publish(deviation, 0)
-            u.publish(recalcInProgress, false)
+        u.handleNext(u.pipe(externalWindow), (wi) => {
+          const w = wi || window
+          w.requestAnimationFrame(() => {
+            u.publish(scrollBy, { top: offset })
+            w.requestAnimationFrame(() => {
+              u.publish(deviation, 0)
+              u.publish(recalcInProgress, false)
+            })
           })
         })
       }
@@ -157,5 +162,5 @@ export const upwardScrollFixSystem = u.system(
 
     return { deviation }
   },
-  u.tup(domIOSystem, stateFlagsSystem, listStateSystem, sizeSystem, loggerSystem, recalcSystem)
+  u.tup(domIOSystem, stateFlagsSystem, listStateSystem, sizeSystem, loggerSystem, recalcSystem, windowScrollerSystem)
 )

@@ -1794,30 +1794,65 @@ const propsReadySystem = system(
   tup(loggerSystem),
   { singleton: true }
 );
-var lastTime = 0;
-const myRequestAnimationFrame = function(callback) {
-  var currTime = (/* @__PURE__ */ new Date()).getTime();
-  var timeToCall = Math.max(0, 16 - (currTime - lastTime));
-  var id2 = setTimeout(function() {
-    callback(currTime + timeToCall);
-  }, timeToCall);
-  lastTime = currTime + timeToCall;
-  return id2;
-};
-function skipFrames(frameCount, callback) {
+function skipFrames(w, frameCount, callback) {
   if (frameCount == 0) {
     callback();
   } else {
-    myRequestAnimationFrame(() => skipFrames(frameCount - 1, callback));
+    w.requestAnimationFrame(() => skipFrames(w, frameCount - 1, callback));
   }
 }
+const windowScrollerSystem = system(([{ scrollTo, scrollContainerState }]) => {
+  const windowScrollContainerState = stream();
+  const windowViewportRect = stream();
+  const windowScrollTo = stream();
+  const useWindowScroll = statefulStream(false);
+  const customScrollParent = statefulStream(void 0);
+  const externalWindow = statefulStream(void 0);
+  connect(
+    pipe(
+      combineLatest(windowScrollContainerState, windowViewportRect),
+      map(([{ viewportHeight, scrollTop: windowScrollTop, scrollHeight }, { offsetTop }]) => {
+        return {
+          scrollTop: Math.max(0, windowScrollTop - offsetTop),
+          scrollHeight,
+          viewportHeight
+        };
+      })
+    ),
+    scrollContainerState
+  );
+  connect(
+    pipe(
+      scrollTo,
+      withLatestFrom(windowViewportRect),
+      map(([scrollTo2, { offsetTop }]) => {
+        return {
+          ...scrollTo2,
+          top: scrollTo2.top + offsetTop
+        };
+      })
+    ),
+    windowScrollTo
+  );
+  return {
+    // config
+    useWindowScroll,
+    customScrollParent,
+    externalWindow,
+    // input
+    windowScrollContainerState,
+    windowViewportRect,
+    // signals
+    windowScrollTo
+  };
+}, tup(domIOSystem));
 function getInitialTopMostItemIndexNumber(location, totalCount) {
   const lastIndex = totalCount - 1;
   const index = typeof location === "number" ? location : location.index === "LAST" ? lastIndex : location.index;
   return index;
 }
 const initialTopMostItemIndexSystem = system(
-  ([{ sizes, listRefresh, defaultItemSize }, { scrollTop }, { scrollToIndex }, { didMount }]) => {
+  ([{ sizes, listRefresh, defaultItemSize }, { scrollTop }, { scrollToIndex }, { didMount }, { externalWindow }]) => {
     const scrolledToInitialItem = statefulStream(true);
     const initialTopMostItemIndex = statefulStream(0);
     const scrollScheduled = statefulStream(false);
@@ -1832,16 +1867,17 @@ const initialTopMostItemIndexSystem = system(
     );
     subscribe(
       pipe(
-        combineLatest(listRefresh, didMount),
+        combineLatest(listRefresh, didMount, externalWindow),
         withLatestFrom(scrolledToInitialItem, sizes, defaultItemSize, scrollScheduled),
         filter(([[, didMount2], scrolledToInitialItem2, { sizeTree }, defaultItemSize2, scrollScheduled2]) => {
           return didMount2 && (!empty(sizeTree) || isDefined(defaultItemSize2)) && !scrolledToInitialItem2 && !scrollScheduled2;
         }),
-        withLatestFrom(initialTopMostItemIndex)
+        withLatestFrom(initialTopMostItemIndex, externalWindow)
       ),
-      ([, initialTopMostItemIndex2]) => {
+      ([, initialTopMostItemIndex2, wi]) => {
         publish(scrollScheduled, true);
-        skipFrames(3, () => {
+        const w = wi || window;
+        skipFrames(w, 3, () => {
           handleNext(scrollTop, () => publish(scrolledToInitialItem, true));
           publish(scrollToIndex, initialTopMostItemIndex2);
         });
@@ -1852,7 +1888,7 @@ const initialTopMostItemIndexSystem = system(
       initialTopMostItemIndex
     };
   },
-  tup(sizeSystem, domIOSystem, scrollToIndexSystem, propsReadySystem),
+  tup(sizeSystem, domIOSystem, scrollToIndexSystem, propsReadySystem, windowScrollerSystem),
   { singleton: true }
 );
 function normalizeFollowOutput(follow) {
@@ -2525,7 +2561,8 @@ const upwardScrollFixSystem = system(
     { listState },
     { beforeUnshiftWith, shiftWithOffset, sizes, gap },
     { log },
-    { recalcInProgress }
+    { recalcInProgress },
+    { externalWindow }
   ]) => {
     const deviationOffset = streamFromEmitter(
       pipe(
@@ -2598,8 +2635,8 @@ const upwardScrollFixSystem = system(
     subscribe(
       pipe(
         beforeUnshiftWith,
-        withLatestFrom(sizes, gap),
-        map(([offset, { lastSize: defaultItemSize, groupIndices, sizeTree }, gap2]) => {
+        withLatestFrom(sizes, gap, externalWindow),
+        map(([offset, { lastSize: defaultItemSize, groupIndices, sizeTree }, gap2, w]) => {
           function getItemOffset(itemCount) {
             return itemCount * (defaultItemSize + gap2);
           }
@@ -2628,64 +2665,22 @@ const upwardScrollFixSystem = system(
       ),
       (offset) => {
         publish(deviation, offset);
-        myRequestAnimationFrame(() => {
-          publish(scrollBy, { top: offset });
-          myRequestAnimationFrame(() => {
-            publish(deviation, 0);
-            publish(recalcInProgress, false);
+        handleNext(pipe(externalWindow), (wi) => {
+          const w = wi || window;
+          w.requestAnimationFrame(() => {
+            publish(scrollBy, { top: offset });
+            w.requestAnimationFrame(() => {
+              publish(deviation, 0);
+              publish(recalcInProgress, false);
+            });
           });
         });
       }
     );
     return { deviation };
   },
-  tup(domIOSystem, stateFlagsSystem, listStateSystem, sizeSystem, loggerSystem, recalcSystem)
+  tup(domIOSystem, stateFlagsSystem, listStateSystem, sizeSystem, loggerSystem, recalcSystem, windowScrollerSystem)
 );
-const windowScrollerSystem = system(([{ scrollTo, scrollContainerState }]) => {
-  const windowScrollContainerState = stream();
-  const windowViewportRect = stream();
-  const windowScrollTo = stream();
-  const useWindowScroll = statefulStream(false);
-  const customScrollParent = statefulStream(void 0);
-  const externalWindow = statefulStream(void 0);
-  connect(
-    pipe(
-      combineLatest(windowScrollContainerState, windowViewportRect),
-      map(([{ viewportHeight, scrollTop: windowScrollTop, scrollHeight }, { offsetTop }]) => {
-        return {
-          scrollTop: Math.max(0, windowScrollTop - offsetTop),
-          scrollHeight,
-          viewportHeight
-        };
-      })
-    ),
-    scrollContainerState
-  );
-  connect(
-    pipe(
-      scrollTo,
-      withLatestFrom(windowViewportRect),
-      map(([scrollTo2, { offsetTop }]) => {
-        return {
-          ...scrollTo2,
-          top: scrollTo2.top + offsetTop
-        };
-      })
-    ),
-    windowScrollTo
-  );
-  return {
-    // config
-    useWindowScroll,
-    customScrollParent,
-    externalWindow,
-    // input
-    windowScrollContainerState,
-    windowViewportRect,
-    // signals
-    windowScrollTo
-  };
-}, tup(domIOSystem));
 const initialScrollTopSystem = system(
   ([{ didMount }, { scrollTo }, { listState }, { externalWindow }]) => {
     const initialScrollTop = statefulStream(0);
@@ -2705,7 +2700,6 @@ const initialScrollTopSystem = system(
           ),
           ([_, wi]) => {
             const w = wi || window;
-            console.log(w);
             w.requestAnimationFrame(() => {
               publish(scrollTo, location);
             });
@@ -3490,14 +3484,23 @@ const gridSystem = /* @__PURE__ */ system(
     );
     subscribe(
       pipe(
-        combineLatest(didMount, scrolledToInitialItem, itemDimensions, viewportDimensions, initialTopMostItemIndex, scrollScheduled),
+        combineLatest(
+          didMount,
+          scrolledToInitialItem,
+          itemDimensions,
+          viewportDimensions,
+          initialTopMostItemIndex,
+          externalWindow,
+          scrollScheduled
+        ),
         filter(([didMount2, scrolledToInitialItem2, itemDimensions2, viewportDimensions2, , scrollScheduled2]) => {
           return didMount2 && !scrolledToInitialItem2 && itemDimensions2.height !== 0 && viewportDimensions2.height !== 0 && !scrollScheduled2;
         })
       ),
-      ([, , , , initialTopMostItemIndex2]) => {
+      ([, , , , initialTopMostItemIndex2, externalWindow2]) => {
         publish(scrollScheduled, true);
-        skipFrames(1, () => {
+        const w = externalWindow2 || window;
+        skipFrames(w, 1, () => {
           publish(scrollToIndex, initialTopMostItemIndex2);
         });
         handleNext(pipe(scrollTop), () => {

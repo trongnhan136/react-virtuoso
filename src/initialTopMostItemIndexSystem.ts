@@ -6,6 +6,7 @@ import { scrollToIndexSystem } from './scrollToIndexSystem'
 import { propsReadySystem } from './propsReadySystem'
 import { FlatIndexLocationWithAlign } from './interfaces'
 import { skipFrames } from './utils/skipFrames'
+import { windowScrollerSystem } from './windowScrollerSystem'
 
 export function getInitialTopMostItemIndexNumber(location: number | FlatIndexLocationWithAlign, totalCount: number): number {
   const lastIndex = totalCount - 1
@@ -14,7 +15,7 @@ export function getInitialTopMostItemIndexNumber(location: number | FlatIndexLoc
 }
 
 export const initialTopMostItemIndexSystem = u.system(
-  ([{ sizes, listRefresh, defaultItemSize }, { scrollTop }, { scrollToIndex }, { didMount }]) => {
+  ([{ sizes, listRefresh, defaultItemSize }, { scrollTop }, { scrollToIndex }, { didMount }, { externalWindow }]) => {
     const scrolledToInitialItem = u.statefulStream(true)
     const initialTopMostItemIndex = u.statefulStream<number | FlatIndexLocationWithAlign>(0)
     const scrollScheduled = u.statefulStream(false)
@@ -31,16 +32,17 @@ export const initialTopMostItemIndexSystem = u.system(
 
     u.subscribe(
       u.pipe(
-        u.combineLatest(listRefresh, didMount),
+        u.combineLatest(listRefresh, didMount, externalWindow),
         u.withLatestFrom(scrolledToInitialItem, sizes, defaultItemSize, scrollScheduled),
         u.filter(([[, didMount], scrolledToInitialItem, { sizeTree }, defaultItemSize, scrollScheduled]) => {
           return didMount && (!empty(sizeTree) || u.isDefined(defaultItemSize)) && !scrolledToInitialItem && !scrollScheduled
         }),
-        u.withLatestFrom(initialTopMostItemIndex)
+        u.withLatestFrom(initialTopMostItemIndex, externalWindow)
       ),
-      ([, initialTopMostItemIndex]) => {
+      ([, initialTopMostItemIndex, wi]) => {
         u.publish(scrollScheduled, true)
-        skipFrames(3, () => {
+        const w = wi || window
+        skipFrames(w, 3, () => {
           u.handleNext(scrollTop, () => u.publish(scrolledToInitialItem, true))
           u.publish(scrollToIndex, initialTopMostItemIndex)
         })
@@ -52,6 +54,6 @@ export const initialTopMostItemIndexSystem = u.system(
       initialTopMostItemIndex,
     }
   },
-  u.tup(sizeSystem, domIOSystem, scrollToIndexSystem, propsReadySystem),
+  u.tup(sizeSystem, domIOSystem, scrollToIndexSystem, propsReadySystem, windowScrollerSystem),
   { singleton: true }
 )

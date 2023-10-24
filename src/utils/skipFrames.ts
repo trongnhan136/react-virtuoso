@@ -1,9 +1,8 @@
-import { myRequestAnimationFrame } from '../hooks/animate_frame'
-
-export function skipFrames(frameCount: number, callback: () => void) {
+/* eslint-disable @typescript-eslint/no-unsafe-call */
+export function skipFrames(w: Window, frameCount: number, callback: () => void) {
   if (frameCount == 0) {
     callback()
   } else {
-    myRequestAnimationFrame(() => skipFrames(frameCount - 1, callback))
+    w.requestAnimationFrame(() => skipFrames(w, frameCount - 1, callback))
   }
 }
