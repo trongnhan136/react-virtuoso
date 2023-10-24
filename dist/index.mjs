@@ -2633,7 +2633,7 @@ const upwardScrollFixSystem = system(
       scrollBy
     );
     subscribe(pipe(externalWindow), (wi) => {
-      subscribe(
+      handleNext(
         pipe(
           beforeUnshiftWith,
           withLatestFrom(sizes, gap),

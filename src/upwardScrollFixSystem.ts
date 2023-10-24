@@ -107,7 +107,7 @@ export const upwardScrollFixSystem = u.system(
     )
 
     u.subscribe(u.pipe(externalWindow), (wi) => {
-      u.subscribe(
+      u.handleNext(
         u.pipe(
           beforeUnshiftWith,
           u.withLatestFrom(sizes, gap),
