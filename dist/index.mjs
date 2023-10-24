@@ -2527,6 +2527,8 @@ const upwardScrollFixSystem = system(
     { log },
     { recalcInProgress }
   ]) => {
+    const wind = useEmitterValue$2("externalWindow");
+    console.log(wind);
     const deviationOffset = streamFromEmitter(
       pipe(
         listState,
@@ -3306,7 +3308,11 @@ const Viewport$2 = ({ children }) => {
   const viewportHeight = usePublisher$2("viewportHeight");
   const fixedItemHeight = usePublisher$2("fixedItemHeight");
   const externalWindow = useEmitterValue$2("externalWindow");
-  const viewportRef = useSize(compose(viewportHeight, (el) => correctItemSize(el, "height")), true, externalWindow);
+  const viewportRef = useSize(
+    compose(viewportHeight, (el) => correctItemSize(el, "height")),
+    true,
+    externalWindow
+  );
   React.useEffect(() => {
     if (ctx) {
       viewportHeight(ctx.viewportHeight);

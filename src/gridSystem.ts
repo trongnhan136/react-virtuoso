@@ -12,6 +12,7 @@ import { windowScrollerSystem } from './windowScrollerSystem'
 import { getInitialTopMostItemIndexNumber } from './initialTopMostItemIndexSystem'
 import { skipFrames } from './utils/skipFrames'
 import { ElementDimensions, Gap, GridStateSnapshot } from './component-interfaces/VirtuosoGrid'
+import { useEmitterValue } from './Virtuoso'
 
 export type Data = unknown[] | null
 
@@ -78,7 +79,7 @@ export const gridSystem = /*#__PURE__*/ u.system(
     stateFlags,
     scrollSeek,
     { propsReady, didMount },
-    { windowViewportRect, useWindowScroll, customScrollParent,externalWindow ,windowScrollContainerState, windowScrollTo },
+    { windowViewportRect, useWindowScroll, customScrollParent, externalWindow, windowScrollContainerState, windowScrollTo },
     log,
   ]) => {
     const totalCount = u.statefulStream(0)

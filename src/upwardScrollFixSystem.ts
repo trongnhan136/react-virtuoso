@@ -9,6 +9,7 @@ import { simpleMemoize } from './utils/simpleMemoize'
 import { recalcSystem } from './recalcSystem'
 import { find } from './AATree'
 import { myRequestAnimationFrame } from './hooks/animate_frame'
+import { useEmitterValue } from './Virtuoso'
 
 const isMobileSafari = simpleMemoize(() => {
   return /iP(ad|od|hone)/i.test(navigator.userAgent) && /WebKit/i.test(navigator.userAgent)
@@ -27,6 +28,11 @@ export const upwardScrollFixSystem = u.system(
     { log },
     { recalcInProgress },
   ]) => {
+    const wind = useEmitterValue('externalWindow')
+
+    // eslint-disable-next-line no-console
+    console.log(wind)
+
     const deviationOffset = u.streamFromEmitter(
       u.pipe(
         listState,

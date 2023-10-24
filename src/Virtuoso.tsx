@@ -238,7 +238,7 @@ const Footer: React.FC = /*#__PURE__*/ React.memo(function VirtuosoFooter() {
   const footerHeight = usePublisher('footerHeight')
   const headerFooterTag = useEmitterValue('headerFooterTag')
   const externalWindow = useEmitterValue('externalWindow')
-  const ref = useSize((el) => footerHeight(correctItemSize(el, 'height')), true,externalWindow)
+  const ref = useSize((el) => footerHeight(correctItemSize(el, 'height')), true, externalWindow)
   const context = useEmitterValue('context')
   return Footer
     ? React.createElement(headerFooterTag, { ref }, React.createElement(Footer, contextPropIfNotDomElement(Footer, context)))
@@ -330,7 +330,11 @@ const Viewport: React.FC<React.PropsWithChildren<unknown>> = ({ children }) => {
   const viewportHeight = usePublisher('viewportHeight')
   const fixedItemHeight = usePublisher('fixedItemHeight')
   const externalWindow = useEmitterValue('externalWindow')
-  const viewportRef = useSize(u.compose(viewportHeight, (el) => correctItemSize(el, 'height')), true, externalWindow)
+  const viewportRef = useSize(
+    u.compose(viewportHeight, (el) => correctItemSize(el, 'height')),
+    true,
+    externalWindow
+  )
 
   React.useEffect(() => {
     if (ctx) {
@@ -352,7 +356,7 @@ const WindowViewport: React.FC<React.PropsWithChildren<unknown>> = ({ children }
   const fixedItemHeight = usePublisher('fixedItemHeight')
   const customScrollParent = useEmitterValue('customScrollParent')
   const externalWindow = useEmitterValue('externalWindow')
-  const viewportRef = useWindowViewportRectRef(windowViewportRect, customScrollParent,externalWindow)
+  const viewportRef = useWindowViewportRectRef(windowViewportRect, customScrollParent, externalWindow)
 
   React.useEffect(() => {
     if (ctx) {
