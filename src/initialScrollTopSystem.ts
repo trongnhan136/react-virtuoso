@@ -17,19 +17,21 @@ export const initialScrollTopSystem = u.system(
         u.map(([, offset]) => ({ top: offset }))
       ),
       (location) => {
-        u.handleNext(
-          u.pipe(
-            u.combineLatest(listState, externalWindow),
-            u.skip(1),
-            u.filter(([state]) => state.items.length > 1)
-          ),
-          ([_, wi]) => {
-            const w = wi || window
-            w.requestAnimationFrame(() => {
-              u.publish(scrollTo, location)
-            })
-          }
-        )
+        u.handleNext(u.pipe(externalWindow), (wi) => {
+          u.handleNext(
+            u.pipe(
+              listState,
+              u.skip(1),
+              u.filter((state) => state.items.length > 1)
+            ),
+            () => {
+              const w = wi || window
+              w.requestAnimationFrame(() => {
+                u.publish(scrollTo, location)
+              })
+            }
+          )
+        })
       }
     )
 

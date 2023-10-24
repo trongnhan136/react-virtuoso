@@ -2692,19 +2692,21 @@ const initialScrollTopSystem = system(
         map(([, offset]) => ({ top: offset }))
       ),
       (location) => {
-        handleNext(
-          pipe(
-            combineLatest(listState, externalWindow),
-            skip(1),
-            filter(([state]) => state.items.length > 1)
-          ),
-          ([_, wi]) => {
-            const w = wi || window;
-            w.requestAnimationFrame(() => {
-              publish(scrollTo, location);
-            });
-          }
-        );
+        handleNext(pipe(externalWindow), (wi) => {
+          handleNext(
+            pipe(
+              listState,
+              skip(1),
+              filter((state) => state.items.length > 1)
+            ),
+            () => {
+              const w = wi || window;
+              w.requestAnimationFrame(() => {
+                publish(scrollTo, location);
+              });
+            }
+          );
+        });
       }
     );
     return {
