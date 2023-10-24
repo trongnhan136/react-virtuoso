@@ -110,7 +110,7 @@ export const upwardScrollFixSystem = u.system(
       u.pipe(
         beforeUnshiftWith,
         u.withLatestFrom(sizes, gap, externalWindow),
-        u.map(([offset, { lastSize: defaultItemSize, groupIndices, sizeTree }, gap, w]) => {
+        u.map(([offset, { lastSize: defaultItemSize, groupIndices, sizeTree }, gap]) => {
           function getItemOffset(itemCount: number) {
             return itemCount * (defaultItemSize + gap)
           }

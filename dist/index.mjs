@@ -2636,7 +2636,7 @@ const upwardScrollFixSystem = system(
       pipe(
         beforeUnshiftWith,
         withLatestFrom(sizes, gap, externalWindow),
-        map(([offset, { lastSize: defaultItemSize, groupIndices, sizeTree }, gap2, w]) => {
+        map(([offset, { lastSize: defaultItemSize, groupIndices, sizeTree }, gap2]) => {
           function getItemOffset(itemCount) {
             return itemCount * (defaultItemSize + gap2);
           }
