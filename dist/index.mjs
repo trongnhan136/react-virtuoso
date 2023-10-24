@@ -1794,10 +1794,15 @@ const propsReadySystem = system(
   tup(loggerSystem),
   { singleton: true }
 );
-const myRequestAnimationFrame = (callback) => {
-  setTimeout(() => {
-    callback();
-  }, 1e3 / 60);
+var lastTime = 0;
+const myRequestAnimationFrame = function(callback) {
+  var currTime = (/* @__PURE__ */ new Date()).getTime();
+  var timeToCall = Math.max(0, 16 - (currTime - lastTime));
+  var id2 = setTimeout(function() {
+    callback(currTime + timeToCall);
+  }, timeToCall);
+  lastTime = currTime + timeToCall;
+  return id2;
 };
 function skipFrames(frameCount, callback) {
   if (frameCount == 0) {
