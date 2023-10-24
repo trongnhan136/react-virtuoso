@@ -1796,11 +1796,13 @@ const propsReadySystem = system(
 );
 var lastTime = 0;
 const myRequestAnimationFrame = function(callback) {
-  var now = window.performance.now();
-  var nextTime = Math.max(lastTime + 16, now);
-  return setTimeout(function() {
-    callback(lastTime = nextTime);
-  }, nextTime - now);
+  var currTime = (/* @__PURE__ */ new Date()).getTime();
+  var timeToCall = Math.max(0, 16 - (currTime - lastTime));
+  var id2 = setTimeout(function() {
+    callback(currTime + timeToCall);
+  }, timeToCall);
+  lastTime = currTime + timeToCall;
+  return id2;
 };
 function skipFrames(frameCount, callback) {
   if (frameCount == 0) {
