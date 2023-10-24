@@ -2634,14 +2634,15 @@ const upwardScrollFixSystem = system(
     );
     subscribe(
       pipe(
-        beforeUnshiftWith,
-        withLatestFrom(sizes, gap, externalWindow),
-        map(([offset, { lastSize: defaultItemSize, groupIndices, sizeTree }, gap2]) => {
+        combineLatest(beforeUnshiftWith, externalWindow),
+        withLatestFrom(sizes, gap),
+        map(([data, { lastSize: defaultItemSize, groupIndices, sizeTree }, gap2]) => {
           function getItemOffset(itemCount) {
             return itemCount * (defaultItemSize + gap2);
           }
+          const offset = data[0];
           if (groupIndices.length === 0) {
-            return getItemOffset(offset);
+            return { offset: getItemOffset(offset), wi: data[1] };
           } else {
             let amount = 0;
             const defaultGroupSize = find(sizeTree, 0);
@@ -2659,20 +2660,18 @@ const upwardScrollFixSystem = system(
               amount += getItemOffset(groupItemCount);
               groupIndex++;
             }
-            return amount;
+            return { offset: amount, wi: data[1] };
           }
         })
       ),
-      (offset) => {
+      ({ offset, wi }) => {
+        const w = wi || window;
         publish(deviation, offset);
-        handleNext(pipe(externalWindow), (wi) => {
-          const w = wi || window;
+        w.requestAnimationFrame(() => {
+          publish(scrollBy, { top: offset });
           w.requestAnimationFrame(() => {
-            publish(scrollBy, { top: offset });
-            w.requestAnimationFrame(() => {
-              publish(deviation, 0);
-              publish(recalcInProgress, false);
-            });
+            publish(deviation, 0);
+            publish(recalcInProgress, false);
           });
         });
       }

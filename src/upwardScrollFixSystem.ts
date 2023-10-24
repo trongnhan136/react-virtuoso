@@ -108,14 +108,15 @@ export const upwardScrollFixSystem = u.system(
 
     u.subscribe(
       u.pipe(
-        beforeUnshiftWith,
-        u.withLatestFrom(sizes, gap, externalWindow),
-        u.map(([offset, { lastSize: defaultItemSize, groupIndices, sizeTree }, gap]) => {
+        u.combineLatest(beforeUnshiftWith, externalWindow),
+        u.withLatestFrom(sizes, gap),
+        u.map(([data, { lastSize: defaultItemSize, groupIndices, sizeTree }, gap]) => {
           function getItemOffset(itemCount: number) {
             return itemCount * (defaultItemSize + gap)
           }
+          const offset = data[0]
           if (groupIndices.length === 0) {
-            return getItemOffset(offset)
+            return { offset: getItemOffset(offset), wi: data[1] }
           } else {
             let amount = 0
             const defaultGroupSize = find(sizeTree, 0)!
@@ -141,20 +142,18 @@ export const upwardScrollFixSystem = u.system(
               groupIndex++
             }
 
-            return amount
+            return { offset: amount, wi: data[1] }
           }
         })
       ),
-      (offset) => {
+      ({ offset, wi }) => {
+        const w = wi || window
         u.publish(deviation, offset)
-        u.handleNext(u.pipe(externalWindow), (wi) => {
-          const w = wi || window
+        w.requestAnimationFrame(() => {
+          u.publish(scrollBy, { top: offset })
           w.requestAnimationFrame(() => {
-            u.publish(scrollBy, { top: offset })
-            w.requestAnimationFrame(() => {
-              u.publish(deviation, 0)
-              u.publish(recalcInProgress, false)
-            })
+            u.publish(deviation, 0)
+            u.publish(recalcInProgress, false)
           })
         })
       }
