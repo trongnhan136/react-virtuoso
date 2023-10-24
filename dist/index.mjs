@@ -2632,50 +2632,51 @@ const upwardScrollFixSystem = system(
       ),
       scrollBy
     );
-    subscribe(
-      pipe(
-        combineLatest(beforeUnshiftWith, externalWindow),
-        withLatestFrom(sizes, gap),
-        map(([data, { lastSize: defaultItemSize, groupIndices, sizeTree }, gap2]) => {
-          function getItemOffset(itemCount) {
-            return itemCount * (defaultItemSize + gap2);
-          }
-          const offset = data[0];
-          if (groupIndices.length === 0) {
-            return { offset: getItemOffset(offset), wi: data[1] };
-          } else {
-            let amount = 0;
-            const defaultGroupSize = find(sizeTree, 0);
-            let recognizedOffsetItems = 0;
-            let groupIndex = 0;
-            while (recognizedOffsetItems < offset) {
-              recognizedOffsetItems++;
-              amount += defaultGroupSize;
-              let groupItemCount = groupIndices.length === groupIndex + 1 ? Infinity : groupIndices[groupIndex + 1] - groupIndices[groupIndex] - 1;
-              if (recognizedOffsetItems + groupItemCount > offset) {
-                amount -= defaultGroupSize;
-                groupItemCount = offset - recognizedOffsetItems + 1;
-              }
-              recognizedOffsetItems += groupItemCount;
-              amount += getItemOffset(groupItemCount);
-              groupIndex++;
+    subscribe(pipe(externalWindow), (wi) => {
+      subscribe(
+        pipe(
+          beforeUnshiftWith,
+          withLatestFrom(sizes, gap),
+          map(([offset, { lastSize: defaultItemSize, groupIndices, sizeTree }, gap2]) => {
+            function getItemOffset(itemCount) {
+              return itemCount * (defaultItemSize + gap2);
             }
-            return { offset: amount, wi: data[1] };
-          }
-        })
-      ),
-      ({ offset, wi }) => {
-        const w = wi || window;
-        publish(deviation, offset);
-        w.requestAnimationFrame(() => {
-          publish(scrollBy, { top: offset });
+            if (groupIndices.length === 0) {
+              return getItemOffset(offset);
+            } else {
+              let amount = 0;
+              const defaultGroupSize = find(sizeTree, 0);
+              let recognizedOffsetItems = 0;
+              let groupIndex = 0;
+              while (recognizedOffsetItems < offset) {
+                recognizedOffsetItems++;
+                amount += defaultGroupSize;
+                let groupItemCount = groupIndices.length === groupIndex + 1 ? Infinity : groupIndices[groupIndex + 1] - groupIndices[groupIndex] - 1;
+                if (recognizedOffsetItems + groupItemCount > offset) {
+                  amount -= defaultGroupSize;
+                  groupItemCount = offset - recognizedOffsetItems + 1;
+                }
+                recognizedOffsetItems += groupItemCount;
+                amount += getItemOffset(groupItemCount);
+                groupIndex++;
+              }
+              return amount;
+            }
+          })
+        ),
+        (offset) => {
+          const w = wi || window;
+          publish(deviation, offset);
           w.requestAnimationFrame(() => {
-            publish(deviation, 0);
-            publish(recalcInProgress, false);
+            publish(scrollBy, { top: offset });
+            w.requestAnimationFrame(() => {
+              publish(deviation, 0);
+              publish(recalcInProgress, false);
+            });
           });
-        });
-      }
-    );
+        }
+      );
+    });
     return { deviation };
   },
   tup(domIOSystem, stateFlagsSystem, listStateSystem, sizeSystem, loggerSystem, recalcSystem, windowScrollerSystem)

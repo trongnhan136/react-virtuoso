@@ -106,58 +106,60 @@ export const upwardScrollFixSystem = u.system(
       scrollBy
     )
 
-    u.subscribe(
-      u.pipe(
-        u.combineLatest(beforeUnshiftWith, externalWindow),
-        u.withLatestFrom(sizes, gap),
-        u.map(([data, { lastSize: defaultItemSize, groupIndices, sizeTree }, gap]) => {
-          function getItemOffset(itemCount: number) {
-            return itemCount * (defaultItemSize + gap)
-          }
-          const offset = data[0]
-          if (groupIndices.length === 0) {
-            return { offset: getItemOffset(offset), wi: data[1] }
-          } else {
-            let amount = 0
-            const defaultGroupSize = find(sizeTree, 0)!
-
-            let recognizedOffsetItems = 0
-            let groupIndex = 0
-            while (recognizedOffsetItems < offset) {
-              // increase once for the group itself
-              recognizedOffsetItems++
-              amount += defaultGroupSize
-
-              let groupItemCount =
-                groupIndices.length === groupIndex + 1 ? Infinity : groupIndices[groupIndex + 1] - groupIndices[groupIndex] - 1
-
-              // if the group is larger than the offset, we have an expanded group. remove the group size, and replace with 1 item.
-              if (recognizedOffsetItems + groupItemCount > offset) {
-                amount -= defaultGroupSize
-                groupItemCount = offset - recognizedOffsetItems + 1
-              }
-
-              recognizedOffsetItems += groupItemCount
-              amount += getItemOffset(groupItemCount)
-              groupIndex++
+    u.subscribe(u.pipe(externalWindow), (wi) => {
+      u.subscribe(
+        u.pipe(
+          beforeUnshiftWith,
+          u.withLatestFrom(sizes, gap),
+          u.map(([offset, { lastSize: defaultItemSize, groupIndices, sizeTree }, gap]) => {
+            function getItemOffset(itemCount: number) {
+              return itemCount * (defaultItemSize + gap)
             }
 
-            return { offset: amount, wi: data[1] }
-          }
-        })
-      ),
-      ({ offset, wi }) => {
-        const w = wi || window
-        u.publish(deviation, offset)
-        w.requestAnimationFrame(() => {
-          u.publish(scrollBy, { top: offset })
-          w.requestAnimationFrame(() => {
-            u.publish(deviation, 0)
-            u.publish(recalcInProgress, false)
+            if (groupIndices.length === 0) {
+              return getItemOffset(offset)
+            } else {
+              let amount = 0
+              const defaultGroupSize = find(sizeTree, 0)!
+
+              let recognizedOffsetItems = 0
+              let groupIndex = 0
+              while (recognizedOffsetItems < offset) {
+                // increase once for the group itself
+                recognizedOffsetItems++
+                amount += defaultGroupSize
+
+                let groupItemCount =
+                  groupIndices.length === groupIndex + 1 ? Infinity : groupIndices[groupIndex + 1] - groupIndices[groupIndex] - 1
+
+                // if the group is larger than the offset, we have an expanded group. remove the group size, and replace with 1 item.
+                if (recognizedOffsetItems + groupItemCount > offset) {
+                  amount -= defaultGroupSize
+                  groupItemCount = offset - recognizedOffsetItems + 1
+                }
+
+                recognizedOffsetItems += groupItemCount
+                amount += getItemOffset(groupItemCount)
+                groupIndex++
+              }
+
+              return amount
+            }
           })
-        })
-      }
-    )
+        ),
+        (offset) => {
+          const w = wi || window
+          u.publish(deviation, offset)
+          w.requestAnimationFrame(() => {
+            u.publish(scrollBy, { top: offset })
+            w.requestAnimationFrame(() => {
+              u.publish(deviation, 0)
+              u.publish(recalcInProgress, false)
+            })
+          })
+        }
+      )
+    })
 
     return { deviation }
   },
