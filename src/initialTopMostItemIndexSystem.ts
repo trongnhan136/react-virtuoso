@@ -32,7 +32,7 @@ export const initialTopMostItemIndexSystem = u.system(
 
     u.subscribe(
       u.pipe(
-        u.combineLatest(listRefresh, didMount, externalWindow),
+        u.combineLatest(listRefresh, didMount),
         u.withLatestFrom(scrolledToInitialItem, sizes, defaultItemSize, scrollScheduled),
         u.filter(([[, didMount], scrolledToInitialItem, { sizeTree }, defaultItemSize, scrollScheduled]) => {
           return didMount && (!empty(sizeTree) || u.isDefined(defaultItemSize)) && !scrolledToInitialItem && !scrollScheduled

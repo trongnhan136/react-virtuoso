@@ -14,24 +14,23 @@ export const initialScrollTopSystem = u.system(
         didMount,
         u.withLatestFrom(initialScrollTop),
         u.filter(([, offset]) => offset !== 0),
-        u.map(([, offset]) => ({ top: offset }))
+        u.map(([, offset]) => ({ top: offset })),
+        u.withLatestFrom(externalWindow)
       ),
-      (location) => {
-        u.handleNext(u.pipe(externalWindow), (wi) => {
-          u.handleNext(
-            u.pipe(
-              listState,
-              u.skip(1),
-              u.filter((state) => state.items.length > 1)
-            ),
-            () => {
-              const w = wi || window
-              w.requestAnimationFrame(() => {
-                u.publish(scrollTo, location)
-              })
-            }
-          )
-        })
+      ([location, wi]) => {
+        u.handleNext(
+          u.pipe(
+            listState,
+            u.skip(1),
+            u.filter((state) => state.items.length > 1)
+          ),
+          () => {
+            const w = wi || window
+            w.requestAnimationFrame(() => {
+              u.publish(scrollTo, location)
+            })
+          }
+        )
       }
     )
 

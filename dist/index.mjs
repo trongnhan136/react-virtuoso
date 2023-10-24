@@ -1867,7 +1867,7 @@ const initialTopMostItemIndexSystem = system(
     );
     subscribe(
       pipe(
-        combineLatest(listRefresh, didMount, externalWindow),
+        combineLatest(listRefresh, didMount),
         withLatestFrom(scrolledToInitialItem, sizes, defaultItemSize, scrollScheduled),
         filter(([[, didMount2], scrolledToInitialItem2, { sizeTree }, defaultItemSize2, scrollScheduled2]) => {
           return didMount2 && (!empty(sizeTree) || isDefined(defaultItemSize2)) && !scrolledToInitialItem2 && !scrollScheduled2;
@@ -2632,51 +2632,50 @@ const upwardScrollFixSystem = system(
       ),
       scrollBy
     );
-    subscribe(pipe(externalWindow), (wi) => {
-      handleNext(
-        pipe(
-          beforeUnshiftWith,
-          withLatestFrom(sizes, gap),
-          map(([offset, { lastSize: defaultItemSize, groupIndices, sizeTree }, gap2]) => {
-            function getItemOffset(itemCount) {
-              return itemCount * (defaultItemSize + gap2);
-            }
-            if (groupIndices.length === 0) {
-              return getItemOffset(offset);
-            } else {
-              let amount = 0;
-              const defaultGroupSize = find(sizeTree, 0);
-              let recognizedOffsetItems = 0;
-              let groupIndex = 0;
-              while (recognizedOffsetItems < offset) {
-                recognizedOffsetItems++;
-                amount += defaultGroupSize;
-                let groupItemCount = groupIndices.length === groupIndex + 1 ? Infinity : groupIndices[groupIndex + 1] - groupIndices[groupIndex] - 1;
-                if (recognizedOffsetItems + groupItemCount > offset) {
-                  amount -= defaultGroupSize;
-                  groupItemCount = offset - recognizedOffsetItems + 1;
-                }
-                recognizedOffsetItems += groupItemCount;
-                amount += getItemOffset(groupItemCount);
-                groupIndex++;
+    subscribe(
+      pipe(
+        beforeUnshiftWith,
+        withLatestFrom(sizes, gap),
+        map(([offset, { lastSize: defaultItemSize, groupIndices, sizeTree }, gap2]) => {
+          function getItemOffset(itemCount) {
+            return itemCount * (defaultItemSize + gap2);
+          }
+          if (groupIndices.length === 0) {
+            return getItemOffset(offset);
+          } else {
+            let amount = 0;
+            const defaultGroupSize = find(sizeTree, 0);
+            let recognizedOffsetItems = 0;
+            let groupIndex = 0;
+            while (recognizedOffsetItems < offset) {
+              recognizedOffsetItems++;
+              amount += defaultGroupSize;
+              let groupItemCount = groupIndices.length === groupIndex + 1 ? Infinity : groupIndices[groupIndex + 1] - groupIndices[groupIndex] - 1;
+              if (recognizedOffsetItems + groupItemCount > offset) {
+                amount -= defaultGroupSize;
+                groupItemCount = offset - recognizedOffsetItems + 1;
               }
-              return amount;
+              recognizedOffsetItems += groupItemCount;
+              amount += getItemOffset(groupItemCount);
+              groupIndex++;
             }
-          })
-        ),
-        (offset) => {
-          const w = wi || window;
-          publish(deviation, offset);
+            return amount;
+          }
+        }),
+        withLatestFrom(externalWindow)
+      ),
+      ([offset, wi]) => {
+        const w = wi || window;
+        publish(deviation, offset);
+        w.requestAnimationFrame(() => {
+          publish(scrollBy, { top: offset });
           w.requestAnimationFrame(() => {
-            publish(scrollBy, { top: offset });
-            w.requestAnimationFrame(() => {
-              publish(deviation, 0);
-              publish(recalcInProgress, false);
-            });
+            publish(deviation, 0);
+            publish(recalcInProgress, false);
           });
-        }
-      );
-    });
+        });
+      }
+    );
     return { deviation };
   },
   tup(domIOSystem, stateFlagsSystem, listStateSystem, sizeSystem, loggerSystem, recalcSystem, windowScrollerSystem)
@@ -2689,24 +2688,23 @@ const initialScrollTopSystem = system(
         didMount,
         withLatestFrom(initialScrollTop),
         filter(([, offset]) => offset !== 0),
-        map(([, offset]) => ({ top: offset }))
+        map(([, offset]) => ({ top: offset })),
+        withLatestFrom(externalWindow)
       ),
-      (location) => {
-        handleNext(pipe(externalWindow), (wi) => {
-          handleNext(
-            pipe(
-              listState,
-              skip(1),
-              filter((state) => state.items.length > 1)
-            ),
-            () => {
-              const w = wi || window;
-              w.requestAnimationFrame(() => {
-                publish(scrollTo, location);
-              });
-            }
-          );
-        });
+      ([location, wi]) => {
+        handleNext(
+          pipe(
+            listState,
+            skip(1),
+            filter((state) => state.items.length > 1)
+          ),
+          () => {
+            const w = wi || window;
+            w.requestAnimationFrame(() => {
+              publish(scrollTo, location);
+            });
+          }
+        );
       }
     );
     return {
@@ -3486,22 +3484,15 @@ const gridSystem = /* @__PURE__ */ system(
     );
     subscribe(
       pipe(
-        combineLatest(
-          didMount,
-          scrolledToInitialItem,
-          itemDimensions,
-          viewportDimensions,
-          initialTopMostItemIndex,
-          externalWindow,
-          scrollScheduled
-        ),
+        combineLatest(didMount, scrolledToInitialItem, itemDimensions, viewportDimensions, initialTopMostItemIndex, scrollScheduled),
         filter(([didMount2, scrolledToInitialItem2, itemDimensions2, viewportDimensions2, , scrollScheduled2]) => {
           return didMount2 && !scrolledToInitialItem2 && itemDimensions2.height !== 0 && viewportDimensions2.height !== 0 && !scrollScheduled2;
-        })
+        }),
+        withLatestFrom(externalWindow)
       ),
-      ([, , , , initialTopMostItemIndex2, externalWindow2]) => {
+      ([[, , , , initialTopMostItemIndex2], wi]) => {
         publish(scrollScheduled, true);
-        const w = externalWindow2 || window;
+        const w = wi || window;
         skipFrames(w, 1, () => {
           publish(scrollToIndex, initialTopMostItemIndex2);
         });
