@@ -1794,11 +1794,16 @@ const propsReadySystem = system(
   tup(loggerSystem),
   { singleton: true }
 );
+const myRequestAnimationFrame = (callback) => {
+  setTimeout(() => {
+    callback();
+  }, 1e3 / 60);
+};
 function skipFrames(frameCount, callback) {
   if (frameCount == 0) {
     callback();
   } else {
-    requestAnimationFrame(() => skipFrames(frameCount - 1, callback));
+    myRequestAnimationFrame(() => skipFrames(frameCount - 1, callback));
   }
 }
 function getInitialTopMostItemIndexNumber(location, totalCount) {
@@ -2649,7 +2654,7 @@ const initialScrollTopSystem = system(
             filter((state) => state.items.length > 1)
           ),
           () => {
-            requestAnimationFrame(() => {
+            myRequestAnimationFrame(() => {
               publish(scrollTo, location);
             });
           }
