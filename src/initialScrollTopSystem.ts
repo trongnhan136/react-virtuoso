@@ -2,7 +2,6 @@ import * as u from './urx'
 import { propsReadySystem } from './propsReadySystem'
 import { domIOSystem } from './domIOSystem'
 import { listStateSystem } from './listStateSystem'
-import { myRequestAnimationFrame } from './utils/animation_frame'
 
 export const initialScrollTopSystem = u.system(
   ([{ didMount }, { scrollTo }, { listState }]) => {
@@ -23,7 +22,7 @@ export const initialScrollTopSystem = u.system(
             u.filter((state) => state.items.length > 1)
           ),
           () => {
-            myRequestAnimationFrame(() => {
+            requestAnimationFrame(() => {
               u.publish(scrollTo, location)
             })
           }
