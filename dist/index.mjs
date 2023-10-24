@@ -1794,11 +1794,7 @@ const propsReadySystem = system(
   tup(loggerSystem),
   { singleton: true }
 );
-const myRequestAnimationFrame = (callback) => {
-  setTimeout(() => {
-    callback();
-  }, 1e3 / 120);
-};
+const myRequestAnimationFrame = requestAnimationFrame;
 function skipFrames(frameCount, callback) {
   if (frameCount == 0) {
     callback();
