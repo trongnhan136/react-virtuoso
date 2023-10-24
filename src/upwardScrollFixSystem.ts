@@ -8,6 +8,7 @@ import { loggerSystem, LogLevel } from './loggerSystem'
 import { simpleMemoize } from './utils/simpleMemoize'
 import { recalcSystem } from './recalcSystem'
 import { find } from './AATree'
+import { myRequestAnimationFrame } from './hooks/animate_frame'
 
 const isMobileSafari = simpleMemoize(() => {
   return /iP(ad|od|hone)/i.test(navigator.userAgent) && /WebKit/i.test(navigator.userAgent)
@@ -144,9 +145,9 @@ export const upwardScrollFixSystem = u.system(
       ),
       (offset) => {
         u.publish(deviation, offset)
-        requestAnimationFrame(() => {
+        myRequestAnimationFrame(() => {
           u.publish(scrollBy, { top: offset })
-          requestAnimationFrame(() => {
+          myRequestAnimationFrame(() => {
             u.publish(deviation, 0)
             u.publish(recalcInProgress, false)
           })
