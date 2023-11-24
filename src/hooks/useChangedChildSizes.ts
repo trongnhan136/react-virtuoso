@@ -10,7 +10,7 @@ export default function useChangedListContentsSizes(
   log: Log,
   gap?: (gap: number) => void,
   customScrollParent?: HTMLElement,
-  externalWindow?: Window|null,
+  externalWindow?: Window | null
 ) {
   const memoedCallback = React.useCallback(
     (el: HTMLElement) => {
@@ -57,7 +57,7 @@ export default function useChangedListContentsSizes(
     [callback, itemSize, log, gap, customScrollParent, scrollContainerStateCallback]
   )
 
-  return useSizeWithElRef(memoedCallback, enabled,externalWindow)
+  return useSizeWithElRef(memoedCallback, enabled, externalWindow)
 }
 
 function getChangedChildSizes(children: HTMLCollection, itemSize: SizeFunction, field: 'offsetHeight' | 'offsetWidth', log: Log) {
