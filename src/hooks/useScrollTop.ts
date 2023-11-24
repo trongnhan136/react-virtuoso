@@ -12,7 +12,8 @@ export default function useScrollTop(
   smoothScrollTargetReached: (yes: true) => void,
   scrollerElement: any,
   scrollerRefCallback: (ref: ScrollerRef) => void = u.noop,
-  customScrollParent?: HTMLElement
+  customScrollParent?: HTMLElement,
+  externalWindow?: Window | null
 ) {
   const scrollerRef = React.useRef<HTMLElement | null | Window>(null)
   const scrollTopTarget = React.useRef<any>(null)
@@ -20,11 +21,12 @@ export default function useScrollTop(
 
   const handler = React.useCallback(
     (ev: Event) => {
+      const w = externalWindow ?? window
       const el = ev.target as HTMLElement
       const windowScroll = (el as any) === window || (el as any) === document
-      const scrollTop = windowScroll ? window.pageYOffset || document.documentElement.scrollTop : el.scrollTop
-      const scrollHeight = windowScroll ? document.documentElement.scrollHeight : el.scrollHeight
-      const viewportHeight = windowScroll ? window.innerHeight : el.offsetHeight
+      const scrollTop = windowScroll ? w.pageYOffset || w.document.documentElement.scrollTop : el.scrollTop
+      const scrollHeight = windowScroll ? w.document.documentElement.scrollHeight : el.scrollHeight
+      const viewportHeight = windowScroll ? w.innerHeight : el.offsetHeight
 
       const call = () => {
         scrollContainerStateCallback({
@@ -73,6 +75,8 @@ export default function useScrollTop(
       return
     }
 
+    const w = externalWindow ?? window
+
     const isSmooth = location.behavior === 'smooth'
 
     let offsetHeight: number
@@ -81,9 +85,9 @@ export default function useScrollTop(
 
     if (scrollerElement === window) {
       // this is not a mistake
-      scrollHeight = Math.max(correctItemSize(document.documentElement, 'height'), document.documentElement.scrollHeight)
-      offsetHeight = window.innerHeight
-      scrollTop = document.documentElement.scrollTop
+      scrollHeight = Math.max(correctItemSize(w.document.documentElement, 'height'), w.document.documentElement.scrollHeight)
+      offsetHeight = w.innerHeight
+      scrollTop = w.document.documentElement.scrollTop
     } else {
       scrollHeight = (scrollerElement as HTMLElement).scrollHeight
       offsetHeight = correctItemSize(scrollerElement as HTMLElement, 'height')

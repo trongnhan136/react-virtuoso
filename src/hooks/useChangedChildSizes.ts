@@ -21,25 +21,27 @@ export default function useChangedListContentsSizes(
         scrollableElement = scrollableElement.parentElement!
       }
 
+      const w = externalWindow ?? window
+
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       const windowScrolling = (scrollableElement.lastElementChild! as HTMLDivElement).dataset['viewportType']! === 'window'
 
       const scrollTop = customScrollParent
         ? customScrollParent.scrollTop
         : windowScrolling
-        ? window.pageYOffset || document.documentElement.scrollTop
+        ? w.pageYOffset || w.document.documentElement.scrollTop
         : scrollableElement.scrollTop
 
       const scrollHeight = customScrollParent
         ? customScrollParent.scrollHeight
         : windowScrolling
-        ? document.documentElement.scrollHeight
+        ? w.document.documentElement.scrollHeight
         : scrollableElement.scrollHeight
 
       const viewportHeight = customScrollParent
         ? customScrollParent.offsetHeight
         : windowScrolling
-        ? window.innerHeight
+        ? w.innerHeight
         : scrollableElement.offsetHeight
 
       scrollContainerStateCallback({
