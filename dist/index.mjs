@@ -395,7 +395,22 @@ function systemToComponent(systemSpec, map2, Root) {
   const usePublisher2 = (key) => {
     return React.useCallback(curry2to1(publish, React.useContext(Context)[key]), [key]);
   };
-  const useEmitterValue2 = (key) => {
+  const useEmitterValue18 = (key) => {
+    const system2 = React.useContext(Context);
+    const source = system2[key];
+    const cb = React.useCallback(
+      (c) => {
+        return subscribe(source, c);
+      },
+      [source]
+    );
+    return React.useSyncExternalStore(
+      cb,
+      () => getValue(source),
+      () => getValue(source)
+    );
+  };
+  const useEmitterValueLegacy = (key) => {
     const system2 = React.useContext(Context);
     const source = system2[key];
     const [value, setValue] = React.useState(curry1to0(getValue, source));
@@ -409,6 +424,7 @@ function systemToComponent(systemSpec, map2, Root) {
     );
     return value;
   };
+  const useEmitterValue2 = React.version.startsWith("18") ? useEmitterValue18 : useEmitterValueLegacy;
   const useEmitter2 = (key, callback) => {
     const context = React.useContext(Context);
     const source = context[key];
@@ -3123,13 +3139,13 @@ const Items$1 = /* @__PURE__ */ React.memo(function VirtuosoItems({ showTopList 
   const computeItemKey = useEmitterValue$2("computeItemKey");
   const isSeeking = useEmitterValue$2("isSeeking");
   const hasGroups2 = useEmitterValue$2("groupIndices").length > 0;
-  const paddingTopAddition = useEmitterValue$2("paddingTopAddition");
+  const alignToBottom = useEmitterValue$2("alignToBottom");
   const scrolledToInitialItem = useEmitterValue$2("scrolledToInitialItem");
   const containerStyle = showTopList ? {} : {
     boxSizing: "border-box",
-    paddingTop: listState.offsetTop + paddingTopAddition,
+    paddingTop: listState.offsetTop,
     paddingBottom: listState.offsetBottom,
-    marginTop: deviation,
+    marginTop: deviation !== 0 ? deviation : alignToBottom ? "auto" : 0,
     ...scrolledToInitialItem ? {} : { visibility: "hidden" }
   };
   if (!showTopList && listState.totalCount === 0 && EmptyPlaceholder) {
@@ -3195,12 +3211,13 @@ const scrollerStyle = {
   position: "relative",
   WebkitOverflowScrolling: "touch"
 };
-const viewportStyle = {
+const viewportStyle = (alignToBottom) => ({
   width: "100%",
   height: "100%",
   position: "absolute",
-  top: 0
-};
+  top: 0,
+  ...alignToBottom ? { display: "flex", flexDirection: "column" } : {}
+});
 const topItemListStyle = {
   width: "100%",
   position: positionStickyCssValue(),
@@ -3312,6 +3329,7 @@ const Viewport$2 = ({ children }) => {
   const viewportHeight = usePublisher$2("viewportHeight");
   const fixedItemHeight = usePublisher$2("fixedItemHeight");
   const externalWindow = useEmitterValue$2("externalWindow");
+  const alignToBottom = useEmitterValue$2("alignToBottom");
   const viewportRef = useSize(
     compose(viewportHeight, (el) => correctItemSize(el, "height")),
     true,
@@ -3323,7 +3341,7 @@ const Viewport$2 = ({ children }) => {
       fixedItemHeight(ctx.itemHeight);
     }
   }, [ctx, viewportHeight, fixedItemHeight]);
-  return /* @__PURE__ */ React.createElement("div", { style: viewportStyle, ref: viewportRef, "data-viewport-type": "element" }, children);
+  return /* @__PURE__ */ React.createElement("div", { style: viewportStyle(alignToBottom), ref: viewportRef, "data-viewport-type": "element" }, children);
 };
 const WindowViewport$2 = ({ children }) => {
   const ctx = React.useContext(VirtuosoMockContext);
@@ -3332,20 +3350,21 @@ const WindowViewport$2 = ({ children }) => {
   const customScrollParent = useEmitterValue$2("customScrollParent");
   const externalWindow = useEmitterValue$2("externalWindow");
   const viewportRef = useWindowViewportRectRef(windowViewportRect, customScrollParent, externalWindow);
+  const alignToBottom = useEmitterValue$2("alignToBottom");
   React.useEffect(() => {
     if (ctx) {
       fixedItemHeight(ctx.itemHeight);
       windowViewportRect({ offsetTop: 0, visibleHeight: ctx.viewportHeight, visibleWidth: 100 });
     }
   }, [ctx, windowViewportRect, fixedItemHeight]);
-  return /* @__PURE__ */ React.createElement("div", { ref: viewportRef, style: viewportStyle, "data-viewport-type": "window" }, children);
+  return /* @__PURE__ */ React.createElement("div", { ref: viewportRef, style: viewportStyle(alignToBottom), "data-viewport-type": "window" }, children);
 };
 const TopItemListContainer = ({ children }) => {
-  const TopItemList = useEmitterValue$2("TopItemListComponent");
+  const TopItemList = useEmitterValue$2("TopItemListComponent") || "div";
   const headerHeight = useEmitterValue$2("headerHeight");
   const style = { ...topItemListStyle, marginTop: `${headerHeight}px` };
   const context = useEmitterValue$2("context");
-  return React.createElement(TopItemList || "div", { style, context }, children);
+  return React.createElement(TopItemList, { style, ...contextPropIfNotDomElement(TopItemList, context) }, children);
 };
 const ListRoot = /* @__PURE__ */ React.memo(function VirtuosoRoot(props) {
   const useWindowScroll = useEmitterValue$2("useWindowScroll");
@@ -3938,7 +3957,7 @@ const Viewport$1 = ({ children }) => {
       itemDimensions({ height: ctx.itemHeight, width: ctx.itemWidth });
     }
   }, [ctx, viewportDimensions, itemDimensions]);
-  return /* @__PURE__ */ React.createElement("div", { style: viewportStyle, ref: viewportRef }, children);
+  return /* @__PURE__ */ React.createElement("div", { style: viewportStyle(false), ref: viewportRef }, children);
 };
 const WindowViewport$1 = ({ children }) => {
   const ctx = React.useContext(VirtuosoGridMockContext);
@@ -3953,7 +3972,7 @@ const WindowViewport$1 = ({ children }) => {
       windowViewportRect({ offsetTop: 0, visibleHeight: ctx.viewportHeight, visibleWidth: ctx.viewportWidth });
     }
   }, [ctx, windowViewportRect, itemDimensions]);
-  return /* @__PURE__ */ React.createElement("div", { ref: viewportRef, style: viewportStyle }, children);
+  return /* @__PURE__ */ React.createElement("div", { ref: viewportRef, style: viewportStyle(false) }, children);
 };
 const GridRoot = /* @__PURE__ */ React.memo(function GridRoot2({ ...props }) {
   const useWindowScroll = useEmitterValue$1("useWindowScroll");
@@ -4155,7 +4174,7 @@ const Viewport = ({ children }) => {
       fixedItemHeight(ctx.itemHeight);
     }
   }, [ctx, viewportHeight, fixedItemHeight]);
-  return /* @__PURE__ */ React.createElement("div", { style: viewportStyle, ref: viewportRef, "data-viewport-type": "element" }, children);
+  return /* @__PURE__ */ React.createElement("div", { style: viewportStyle(false), ref: viewportRef, "data-viewport-type": "element" }, children);
 };
 const WindowViewport = ({ children }) => {
   const ctx = React.useContext(VirtuosoMockContext);
@@ -4170,7 +4189,7 @@ const WindowViewport = ({ children }) => {
       windowViewportRect({ offsetTop: 0, visibleHeight: ctx.viewportHeight, visibleWidth: 100 });
     }
   }, [ctx, windowViewportRect, fixedItemHeight]);
-  return /* @__PURE__ */ React.createElement("div", { ref: viewportRef, style: viewportStyle, "data-viewport-type": "window" }, children);
+  return /* @__PURE__ */ React.createElement("div", { ref: viewportRef, style: viewportStyle(false), "data-viewport-type": "window" }, children);
 };
 const TableRoot = /* @__PURE__ */ React.memo(function TableVirtuosoRoot(props) {
   const useWindowScroll = useEmitterValue("useWindowScroll");

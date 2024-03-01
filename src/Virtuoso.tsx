@@ -113,16 +113,16 @@ const Items = /*#__PURE__*/ React.memo(function VirtuosoItems({ showTopList = fa
   const computeItemKey = useEmitterValue('computeItemKey')
   const isSeeking = useEmitterValue('isSeeking')
   const hasGroups = useEmitterValue('groupIndices').length > 0
-  const paddingTopAddition = useEmitterValue('paddingTopAddition')
+  const alignToBottom = useEmitterValue('alignToBottom')
   const scrolledToInitialItem = useEmitterValue('scrolledToInitialItem')
 
   const containerStyle: React.CSSProperties = showTopList
     ? {}
     : {
         boxSizing: 'border-box',
-        paddingTop: listState.offsetTop + paddingTopAddition,
+        paddingTop: listState.offsetTop,
         paddingBottom: listState.offsetBottom,
-        marginTop: deviation,
+        marginTop: deviation !== 0 ? deviation : alignToBottom ? 'auto' : 0,
         ...(scrolledToInitialItem ? {} : { visibility: 'hidden' }),
       }
 
@@ -196,12 +196,13 @@ export const scrollerStyle: React.CSSProperties = {
   WebkitOverflowScrolling: 'touch',
 }
 
-export const viewportStyle: React.CSSProperties = {
+export const viewportStyle: (alignToBottom: boolean) => React.CSSProperties = (alignToBottom) => ({
   width: '100%',
   height: '100%',
   position: 'absolute',
   top: 0,
-}
+  ...(alignToBottom ? { display: 'flex', flexDirection: 'column' } : {}),
+})
 
 const topItemListStyle: React.CSSProperties = {
   width: '100%',
@@ -335,6 +336,7 @@ const Viewport: React.FC<React.PropsWithChildren<unknown>> = ({ children }) => {
   const viewportHeight = usePublisher('viewportHeight')
   const fixedItemHeight = usePublisher('fixedItemHeight')
   const externalWindow = useEmitterValue('externalWindow')
+  const alignToBottom = useEmitterValue('alignToBottom')
   const viewportRef = useSize(
     u.compose(viewportHeight, (el) => correctItemSize(el, 'height')),
     true,
@@ -349,7 +351,7 @@ const Viewport: React.FC<React.PropsWithChildren<unknown>> = ({ children }) => {
   }, [ctx, viewportHeight, fixedItemHeight])
 
   return (
-    <div style={viewportStyle} ref={viewportRef} data-viewport-type="element">
+    <div style={viewportStyle(alignToBottom)} ref={viewportRef} data-viewport-type="element">
       {children}
     </div>
   )
@@ -362,6 +364,7 @@ const WindowViewport: React.FC<React.PropsWithChildren<unknown>> = ({ children }
   const customScrollParent = useEmitterValue('customScrollParent')
   const externalWindow = useEmitterValue('externalWindow')
   const viewportRef = useWindowViewportRectRef(windowViewportRect, customScrollParent, externalWindow)
+  const alignToBottom = useEmitterValue('alignToBottom')
 
   React.useEffect(() => {
     if (ctx) {
@@ -371,18 +374,18 @@ const WindowViewport: React.FC<React.PropsWithChildren<unknown>> = ({ children }
   }, [ctx, windowViewportRect, fixedItemHeight])
 
   return (
-    <div ref={viewportRef} style={viewportStyle} data-viewport-type="window">
+    <div ref={viewportRef} style={viewportStyle(alignToBottom)} data-viewport-type="window">
       {children}
     </div>
   )
 }
 
 const TopItemListContainer: React.FC<React.PropsWithChildren<unknown>> = ({ children }) => {
-  const TopItemList = useEmitterValue('TopItemListComponent')
+  const TopItemList = useEmitterValue('TopItemListComponent') || 'div'
   const headerHeight = useEmitterValue('headerHeight')
   const style = { ...topItemListStyle, marginTop: `${headerHeight}px` }
   const context = useEmitterValue('context')
-  return React.createElement(TopItemList || 'div', { style, context }, children)
+  return React.createElement(TopItemList, { style, ...contextPropIfNotDomElement(TopItemList, context) }, children)
 }
 
 const ListRoot: React.FC<ListRootProps> = /*#__PURE__*/ React.memo(function VirtuosoRoot(props) {
